@@ -237,6 +237,52 @@
         .notification-item.unread { background: var(--primary-light); }
         .notification-title { font-weight: 600; margin-bottom: 5px; }
         .notification-time { font-size: 11px; color: var(--gray-500); }
+        
+        /* Anexos styles */
+        .anexo-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .anexo-item:hover {
+            background: #c8e6c9;
+            transform: translateX(5px);
+        }
+        .anexo-item i {
+            font-size: 24px;
+            color: var(--primary);
+        }
+        .anexo-info {
+            flex: 1;
+        }
+        .anexo-nome {
+            font-weight: 600;
+            margin-bottom: 3px;
+            color: var(--primary-dark);
+        }
+        .anexo-tamanho {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+        .btn-download {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .btn-download:hover {
+            background: var(--primary-dark);
+            transform: scale(1.02);
+        }
     </style>
 </head>
 <body>
@@ -525,7 +571,7 @@
                     <div class="form-group"><label>Data Início</label><input type="date" id="dataInicio" class="form-control" required></div>
                     <div class="form-group"><label>Observações</label><textarea id="observacoes" class="form-control" rows="3"></textarea></div>
                     <div class="form-group">
-                        <label>Anexos (Máximo 100MB por arquivo)</label>
+                        <label>Anexos (Máximo 5 arquivos, 100MB por arquivo)</label>
                         <div class="dropzone" onclick="document.getElementById('fileInput').click()">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <p>Arraste arquivos ou clique para anexar</p>
@@ -658,6 +704,7 @@
         function formatarData(d) { if (!d) return ''; return new Date(d).toLocaleDateString('pt-PT'); }
         function formatarDataHora(d) { if (!d) return ''; return new Date(d).toLocaleString('pt-PT'); }
         function formatarTamanho(bytes) {
+            if (!bytes) return '0 B';
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
@@ -724,7 +771,6 @@
             if (panel) panel.classList.toggle('show');
         }
 
-        // Fechar notificações ao clicar fora
         document.addEventListener('click', function(e) {
             const panel = document.getElementById('notificationPanel');
             const bell = document.querySelector('.notification-bell');
@@ -732,6 +778,138 @@
                 panel.classList.remove('show');
             }
         });
+
+        // ============================================
+        // FUNÇÃO PARA UPLOAD DE ANEXOS (USANDO ATTACHMENT COLLECTION)
+        // ============================================
+        async function fazerUploadAnexos(itemId, files) {
+            try {
+                const token = await getSharePointToken();
+                const siteId = await getSiteId();
+                const uploadResults = [];
+                
+                for (const file of files) {
+                    try {
+                        // Converter arquivo para base64
+                        const base64Content = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const base64 = reader.result.split(',')[1];
+                                resolve(base64);
+                            };
+                            reader.onerror = reject;
+                            reader.readAsDataURL(file);
+                        });
+                        
+                        // Adicionar anexo usando a API de attachments da lista
+                        const attachmentUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${SHAREPOINT_CONFIG.listName}/items/${itemId}/attachments`;
+                        
+                        const attachmentData = {
+                            "@odata.type": "#microsoft.graph.attachment",
+                            "name": file.name,
+                            "contentBytes": base64Content,
+                            "contentType": file.type || 'application/octet-stream'
+                        };
+                        
+                        const response = await fetch(attachmentUrl, {
+                            method: 'POST',
+                            headers: { 
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(attachmentData)
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            uploadResults.push({
+                                id: result.id,
+                                name: file.name,
+                                size: file.size
+                            });
+                            console.log(`✅ Anexo ${file.name} enviado com sucesso`);
+                        } else {
+                            const error = await response.text();
+                            console.error(`❌ Erro ao enviar ${file.name}:`, error);
+                            mostrarNotificacao(`Erro ao enviar anexo ${file.name}`, 'warning');
+                        }
+                    } catch (fileError) {
+                        console.error(`❌ Erro no arquivo ${file.name}:`, fileError);
+                    }
+                }
+                
+                return uploadResults;
+            } catch (error) {
+                console.error('❌ Erro ao fazer upload de anexos:', error);
+                return [];
+            }
+        }
+
+        // ============================================
+        // FUNÇÃO PARA BUSCAR ANEXOS (USANDO ATTACHMENT COLLECTION)
+        // ============================================
+        async function buscarAnexosDoItem(itemId) {
+            try {
+                const token = await getSharePointToken();
+                const siteId = await getSiteId();
+                
+                const attachmentsUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${SHAREPOINT_CONFIG.listName}/items/${itemId}/attachments`;
+                const response = await fetch(attachmentsUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.value.map(att => ({
+                        id: att.id,
+                        name: att.name,
+                        size: att.size,
+                        contentType: att.contentType
+                    }));
+                }
+                return [];
+            } catch (error) {
+                console.error('Erro ao buscar anexos:', error);
+                return [];
+            }
+        }
+
+        // ============================================
+        // FUNÇÃO PARA BAIXAR ANEXO
+        // ============================================
+        async function baixarAnexo(itemId, attachmentId, fileName) {
+            showLoading();
+            try {
+                const token = await getSharePointToken();
+                const siteId = await getSiteId();
+                
+                const downloadUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/lists/${SHAREPOINT_CONFIG.listName}/items/${itemId}/attachments/${attachmentId}/$value`;
+                
+                const response = await fetch(downloadUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.href = url;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    mostrarNotificacao(`Download de ${fileName} iniciado!`, 'success');
+                } else {
+                    mostrarNotificacao('Erro ao baixar anexo', 'error');
+                }
+            } catch (error) {
+                console.error('Erro ao baixar:', error);
+                mostrarNotificacao('Erro ao baixar anexo', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
 
         // ============================================
         // SERVIÇO DE EMAIL
@@ -767,8 +945,7 @@
                     destinatario: destinatario,
                     assunto: assunto,
                     data: new Date().toISOString(),
-                    status: sucesso ? 'enviado' : 'erro',
-                    statusCode: response.status
+                    status: sucesso ? 'enviado' : 'erro'
                 });
                 
                 if (historicoEmails.length > 50) historicoEmails.pop();
@@ -782,8 +959,7 @@
                     destinatario: destinatario,
                     assunto: assunto,
                     data: new Date().toISOString(),
-                    status: 'erro',
-                    erro: error.message
+                    status: 'erro'
                 });
                 atualizarPainelEmails();
                 return false;
@@ -806,7 +982,7 @@
                     <div class="email-time"><i class="fas fa-clock"></i> ${formatarDataHora(e.data)}</div>
                     <div class="email-status ${e.status === 'enviado' ? 'email-status-success' : 'email-status-error'}">
                         <i class="fas ${e.status === 'enviado' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> 
-                        ${e.status === 'enviado' ? 'Enviado' : 'Erro ao enviar'}
+                        ${e.status === 'enviado' ? 'Enviado' : 'Erro'}
                     </div>
                 </div>
             `).join('');
@@ -817,7 +993,7 @@
         // ============================================
         async function enviarNotificacaoTeams(titulo, mensagem, cor = '4CAF50') {
             if (!configuracoes.teamsNotif || !configuracoes.teamsWebhook) {
-                console.log('Notificações Teams desativadas ou webhook não configurado');
+                console.log('Notificações Teams desativadas');
                 return false;
             }
             
@@ -830,10 +1006,8 @@
                     "sections": [{
                         "activityTitle": titulo,
                         "activitySubtitle": `Kero SIR - ${new Date().toLocaleString('pt-PT')}`,
-                        "activityImage": "https://via.placeholder.com/64/4CAF50/ffffff?text=K",
                         "facts": [
                             { "name": "Sistema", "value": "Kero SIR" },
-                            { "name": "Módulo", "value": moduloAtual === 'recrutamento' ? 'Recrutamento' : 'Manutenção' },
                             { "name": "Utilizador", "value": usuarioAtual?.nome || 'Sistema' }
                         ],
                         "text": mensagem
@@ -861,16 +1035,7 @@
                 
                 return sucesso;
             } catch (error) {
-                console.error('Erro ao enviar notificação Teams:', error);
-                historicoTeams.unshift({
-                    id: Date.now(),
-                    titulo: titulo,
-                    mensagem: mensagem,
-                    data: new Date().toISOString(),
-                    status: 'erro',
-                    erro: error.message
-                });
-                atualizarPainelTeams();
+                console.error('Erro ao enviar Teams:', error);
                 return false;
             }
         }
@@ -887,7 +1052,6 @@
             list.innerHTML = historicoTeams.slice(0, 20).map(t => `
                 <div class="teams-item">
                     <div class="teams-message"><i class="fab fa-microsoft"></i> ${t.titulo}</div>
-                    <div class="teams-channel">${t.mensagem.substring(0, 50)}...</div>
                     <div class="teams-time"><i class="fas fa-clock"></i> ${formatarDataHora(t.data)}</div>
                     <div class="teams-status ${t.status === 'enviado' ? 'teams-status-success' : 'teams-status-error'}">
                         <i class="fas ${t.status === 'enviado' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> 
@@ -954,7 +1118,6 @@
                     <p><strong>Direção:</strong> ${req.direcao}</p>
                     <p><strong>Aprovado por:</strong> ${aprovador}</p>
                     <p><strong>Comentário:</strong> ${comentario}</p>
-                    <p><strong>Status:</strong> Aprovada - Processo de recrutamento iniciado</p>
                     <hr>
                     <p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p>
                 </div>
@@ -1124,7 +1287,7 @@
         }
 
         // ============================================
-        // SHAREPOINT - INTEGRAÇÃO ORIGINAL
+        // SHAREPOINT - INTEGRAÇÃO
         // ============================================
         async function getSharePointToken() {
             return await getAccessToken(["Sites.ReadWrite.All"]);
@@ -1169,7 +1332,7 @@
                     siteId = await getSiteId();
                 } catch (error) {
                     console.error('Erro ao obter site ID:', error);
-                    mostrarNotificacao('Não foi possível conectar ao SharePoint. Verifique a URL do site.', 'error');
+                    mostrarNotificacao('Não foi possível conectar ao SharePoint.', 'error');
                     requisicoes = [];
                     hideLoading();
                     return;
@@ -1184,9 +1347,15 @@
                 if (listResponse.ok) {
                     const listData = await listResponse.json();
                     if (listData.value && listData.value.length > 0) {
-                        requisicoes = listData.value.map(item => {
+                        requisicoes = [];
+                        
+                        for (const item of listData.value) {
                             const f = item.fields;
-                            return {
+                            
+                            // Buscar anexos do item usando Attachment Collection
+                            const anexos = await buscarAnexosDoItem(item.id);
+                            
+                            requisicoes.push({
                                 id: item.id,
                                 codigo: f.Title || `REQ-${item.id}`,
                                 funcao: f.Funcao || "",
@@ -1202,28 +1371,22 @@
                                 observacoes: f.Observacoes || "",
                                 colaboradorSubstituir: f.ColaboradorSubstituir || "",
                                 motivoSubstituicao: f.MotivoSubstituicao || "",
-                                justificativaReforco: f.JustificativaReforco || ""
-                            };
-                        });
+                                justificativaReforco: f.JustificativaReforco || "",
+                                anexos: anexos
+                            });
+                        }
+                        
                         mostrarNotificacao(`Carregadas ${requisicoes.length} requisições`, 'success');
                     } else {
                         requisicoes = [];
-                        mostrarNotificacao('Nenhuma requisição encontrada na lista', 'info');
+                        mostrarNotificacao('Nenhuma requisição encontrada', 'info');
                     }
                 } else {
-                    const errorText = await listResponse.text();
-                    console.error('Erro ao carregar lista:', listResponse.status, errorText);
-                    
-                    if (listResponse.status === 404) {
-                        mostrarNotificacao(`Lista "${SHAREPOINT_CONFIG.listName}" não encontrada. Verifique se a lista existe no SharePoint.`, 'error');
-                    } else {
-                        mostrarNotificacao(`Erro ao carregar lista: ${listResponse.status}`, 'error');
-                    }
+                    console.error('Erro ao carregar lista:', listResponse.status);
                     requisicoes = [];
                 }
             } catch (error) {
-                console.error('Erro ao carregar do SharePoint:', error);
-                mostrarNotificacao(`Erro ao carregar: ${error.message}`, 'error');
+                console.error('Erro ao carregar:', error);
                 requisicoes = [];
             } finally {
                 hideLoading();
@@ -1234,7 +1397,7 @@
             }
         }
 
-        async function salvarRequisicaoNoSharePoint(req) {
+        async function salvarRequisicaoNoSharePoint(req, arquivos = []) {
             try {
                 const token = await getSharePointToken();
                 const siteId = await getSiteId();
@@ -1263,17 +1426,24 @@
                 });
                 
                 if (createResponse.ok) { 
-                    const newItem = await createResponse.json(); 
+                    const newItem = await createResponse.json();
                     req.id = newItem.id;
-                    return true;
+                    
+                    // Fazer upload dos anexos usando Attachment Collection
+                    if (arquivos.length > 0) {
+                        const anexosUpload = await fazerUploadAnexos(newItem.id, arquivos);
+                        req.anexos = anexosUpload;
+                    }
+                    
+                    return { success: true, id: newItem.id };
                 } else {
                     const error = await createResponse.text();
                     console.error('Erro ao salvar:', error);
-                    return false;
+                    return { success: false, error: error };
                 }
             } catch (error) { 
                 console.error('Erro ao salvar:', error); 
-                return false; 
+                return { success: false, error: error.message };
             }
         }
 
@@ -1366,7 +1536,7 @@
         }
 
         // ============================================
-        // UPLOAD DE ARQUIVOS (Até 100MB)
+        // UPLOAD DE ARQUIVOS
         // ============================================
         function handleFileSelect(files) {
             const maxSize = 100 * 1024 * 1024;
@@ -1499,7 +1669,7 @@
             const id = document.getElementById('comentarioRequisicaoId').value;
             const acao = document.getElementById('comentarioAcao').value;
             const coment = document.getElementById('comentario').value;
-            const req = requisicoes.find(r => r.id === id);
+            const req = requisicoes.find(r => r.id == id);
             if (!req || !coment) { mostrarNotificacao('Comentário obrigatório', 'error'); return; }
             
             if (acao === 'aprovar') {
@@ -1511,12 +1681,6 @@
                         `Requisição para Aprovação - ${req.codigo}`, 
                         templateAprovacao(req, usuarioAtual.nome, coment, 'Controlo de Gestão'));
                     
-                    await enviarNotificacaoTeams(
-                        `Requisição ${req.codigo} Aprovada pelo RH`,
-                        `A requisição para **${req.funcao}** foi aprovada pelo RH e enviada para Controlo de Gestão.\n\n**Comentário:** ${coment}`,
-                        'FF9800'
-                    );
-                    
                     adicionarNotificacao('Requisição Aprovada', `Requisição ${req.codigo} foi aprovada pelo RH.`, 'success', req.id);
                     mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo RH!`, 'success');
                     
@@ -1527,12 +1691,6 @@
                     await enviarEmail(emailsAprovadores['Director Geral'], 
                         `Requisição para Aprovação - ${req.codigo}`, 
                         templateAprovacao(req, usuarioAtual.nome, coment, 'Director Geral'));
-                    
-                    await enviarNotificacaoTeams(
-                        `Requisição ${req.codigo} Aprovada pelo CG`,
-                        `A requisição para **${req.funcao}** foi aprovada pelo Controlo de Gestão e enviada para Director Geral.`,
-                        'FF9800'
-                    );
                     
                     adicionarNotificacao('Requisição Aprovada', `Requisição ${req.codigo} foi aprovada pelo CG.`, 'success', req.id);
                     mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo CG!`, 'success');
@@ -1546,12 +1704,6 @@
                         await enviarEmail(email, `Requisição Aprovada - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment));
                     }
                     
-                    await enviarNotificacaoTeams(
-                        `✅ Requisição ${req.codigo} APROVADA`,
-                        `A requisição para **${req.funcao}** foi totalmente aprovada!\n\n**Aprovador Final:** ${usuarioAtual.nome}\n**Comentário:** ${coment}\n\nO processo de recrutamento foi iniciado.`,
-                        '4CAF50'
-                    );
-                    
                     adicionarNotificacao('Requisição Aprovada', `Requisição ${req.codigo} foi totalmente aprovada!`, 'success', req.id);
                     mostrarNotificacao(`Requisição ${req.codigo} APROVADA!`, 'success');
                 }
@@ -1560,12 +1712,6 @@
                 await atualizarRequisicaoNoSharePoint(req);
                 
                 await enviarEmail(req.criadoPorEmail, `Requisição Rejeitada - ${req.codigo}`, templateRejeicao(req, usuarioAtual.nome, coment));
-                
-                await enviarNotificacaoTeams(
-                    `❌ Requisição ${req.codigo} REJEITADA`,
-                    `A requisição para **${req.funcao}** foi rejeitada por ${usuarioAtual.nome}.\n\n**Motivo:** ${coment}`,
-                    'F44336'
-                );
                 
                 adicionarNotificacao('Requisição Rejeitada', `Requisição ${req.codigo} foi rejeitada.`, 'error', req.id);
                 mostrarNotificacao(`Requisição ${req.codigo} REJEITADA!`, 'warning');
@@ -1578,7 +1724,7 @@
         }
 
         function visualizarRequisicao(id) {
-            const req = requisicoes.find(r => r.id === id);
+            const req = requisicoes.find(r => r.id == id);
             if (!req) {
                 mostrarNotificacao('Requisição não encontrada', 'error');
                 return;
@@ -1607,6 +1753,45 @@
             }
             if (req.tipo === 'reforco_quadro') {
                 html += `<div style="margin-bottom: 15px;"><strong>Justificativa do Reforço:</strong> ${req.justificativaReforco || 'N/A'}</div>`;
+            }
+            
+            // Adicionar seção de anexos
+            if (req.anexos && req.anexos.length > 0) {
+                html += `<div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid var(--primary-light);">
+                            <strong><i class="fas fa-paperclip"></i> Anexos (${req.anexos.length}):</strong>
+                            <div style="margin-top: 10px;">`;
+                
+                req.anexos.forEach(anexo => {
+                    let iconClass = 'fa-file';
+                    if (anexo.name) {
+                        if (anexo.name.match(/\.(pdf)$/i)) iconClass = 'fa-file-pdf';
+                        else if (anexo.name.match(/\.(jpg|jpeg|png|gif|bmp)$/i)) iconClass = 'fa-file-image';
+                        else if (anexo.name.match(/\.(doc|docx)$/i)) iconClass = 'fa-file-word';
+                        else if (anexo.name.match(/\.(xls|xlsx)$/i)) iconClass = 'fa-file-excel';
+                        else if (anexo.name.match(/\.(txt)$/i)) iconClass = 'fa-file-alt';
+                        else if (anexo.name.match(/\.(zip|rar|7z)$/i)) iconClass = 'fa-file-archive';
+                    }
+                    
+                    html += `<div class="anexo-item">
+                                <i class="fas ${iconClass}"></i>
+                                <div class="anexo-info">
+                                    <div class="anexo-nome">${anexo.name}</div>
+                                    <div class="anexo-tamanho">${formatarTamanho(anexo.size)}</div>
+                                </div>
+                                <button class="btn-download" onclick="baixarAnexo('${req.id}', '${anexo.id}', '${anexo.name}')">
+                                    <i class="fas fa-download"></i> Baixar
+                                </button>
+                            </div>`;
+                });
+                
+                html += `</div></div>`;
+            } else {
+                html += `<div style="margin-top: 20px; padding-top: 15px; border-top: 2px solid var(--primary-light);">
+                            <strong><i class="fas fa-paperclip"></i> Anexos:</strong>
+                            <p style="color: #999; margin-top: 10px; padding: 20px; text-align: center; background: #f5f5f5; border-radius: 8px;">
+                                <i class="fas fa-info-circle"></i> Nenhum anexo nesta requisição
+                            </p>
+                        </div>`;
             }
             
             document.getElementById('conteudoModal').innerHTML = html;
@@ -1703,7 +1888,77 @@
         }
 
         // ============================================
-        // RELATÓRIOS (PDF, Excel, CSV)
+        // FUNÇÃO PRINCIPAL DE SALVAR REQUISIÇÃO
+        // ============================================
+        async function salvarRequisicao(e) {
+            e.preventDefault();
+            const tipo = document.getElementById('tipoRequisicao').value;
+            const dir = document.getElementById('direcao').value;
+            const area = document.getElementById('area').value;
+            const funcao = document.getElementById('funcao').value;
+            const qtd = parseInt(document.getElementById('quantidade').value);
+            const dataInicio = document.getElementById('dataInicio').value;
+            const obs = document.getElementById('observacoes').value;
+            
+            if (!tipo || !dir || !area || !funcao || !qtd || !dataInicio) {
+                mostrarNotificacao('Preencha todos os campos obrigatórios', 'error');
+                return;
+            }
+            
+            showLoading();
+            
+            const novoCodigo = `REQ-${new Date().getFullYear()}-${String(requisicoes.length + 1).padStart(3, '0')}`;
+            
+            const novaRequisicao = {
+                codigo: novoCodigo, 
+                funcao: funcao, 
+                direcao: dir, 
+                area: area, 
+                quantidade: qtd,
+                status: 'em_validacao_rh', 
+                tipo: tipo, 
+                dataCriacao: new Date().toISOString(), 
+                dataInicio: dataInicio,
+                criadoPor: usuarioAtual.nome, 
+                criadoPorEmail: usuarioAtual.email, 
+                observacoes: obs || '',
+                colaboradorSubstituir: document.getElementById('colaboradorSubstituir')?.value || '',
+                motivoSubstituicao: document.getElementById('motivoSubstituicao')?.value || '',
+                justificativaReforco: document.getElementById('justificativaReforco')?.value || ''
+            };
+            
+            // Preparar arquivos para upload
+            const arquivosParaUpload = arquivosUpload.map(f => f.file);
+            
+            const resultado = await salvarRequisicaoNoSharePoint(novaRequisicao, arquivosParaUpload);
+            
+            if (resultado.success) {
+                requisicoes.unshift(novaRequisicao);
+                
+                await enviarEmail(emailsAprovadores['RH'], 
+                    `Nova Requisição para Aprovação - ${novoCodigo}`, 
+                    templateNovaRequisicao(novaRequisicao));
+                
+                adicionarNotificacao('Nova Requisição', `Requisição ${novoCodigo} criada com sucesso!`, 'info', novaRequisicao.id);
+                
+                fecharModal('modalNovaRequisicao');
+                document.getElementById('formNovaRequisicao').reset();
+                arquivosUpload = [];
+                document.getElementById('fileList').innerHTML = '';
+                filtrarRequisicoes();
+                carregarAprovacoes();
+                atualizarKPIs();
+                atualizarGraficos();
+                mostrarNotificacao(`Requisição ${novoCodigo} criada com sucesso!`, 'success');
+            } else {
+                mostrarNotificacao(`Erro ao salvar: ${resultado.error}`, 'error');
+            }
+            
+            hideLoading();
+        }
+
+        // ============================================
+        // RELATÓRIOS
         // ============================================
         function obterDadosRelatorio() {
             const dataInicio = document.getElementById('relatorioDataInicio').value;
@@ -1859,72 +2114,6 @@
             abrirModal('modalNovaRequisicao'); 
             document.getElementById('campoSubstituicao').style.display = tipo === 'substituicao' ? 'block' : 'none'; 
             document.getElementById('campoReforco').style.display = tipo === 'reforco_quadro' ? 'block' : 'none'; 
-        }
-
-        async function salvarRequisicao(e) {
-            e.preventDefault();
-            const tipo = document.getElementById('tipoRequisicao').value;
-            const dir = document.getElementById('direcao').value;
-            const area = document.getElementById('area').value;
-            const funcao = document.getElementById('funcao').value;
-            const qtd = parseInt(document.getElementById('quantidade').value);
-            const dataInicio = document.getElementById('dataInicio').value;
-            const obs = document.getElementById('observacoes').value;
-            
-            if (!tipo || !dir || !area || !funcao || !qtd || !dataInicio) {
-                mostrarNotificacao('Preencha todos os campos obrigatórios', 'error');
-                return;
-            }
-            
-            const novoCodigo = `REQ-${new Date().getFullYear()}-${String(requisicoes.length + 1).padStart(3, '0')}`;
-            
-            const novaRequisicao = {
-                id: Date.now().toString(),
-                codigo: novoCodigo, 
-                funcao: funcao, 
-                direcao: dir, 
-                area: area, 
-                quantidade: qtd,
-                status: 'em_validacao_rh', 
-                tipo: tipo, 
-                dataCriacao: new Date().toISOString(), 
-                dataInicio: dataInicio,
-                criadoPor: usuarioAtual.nome, 
-                criadoPorEmail: usuarioAtual.email, 
-                observacoes: obs || '',
-                colaboradorSubstituir: document.getElementById('colaboradorSubstituir')?.value || '',
-                motivoSubstituicao: document.getElementById('motivoSubstituicao')?.value || '',
-                justificativaReforco: document.getElementById('justificativaReforco')?.value || ''
-            };
-            
-            const salvo = await salvarRequisicaoNoSharePoint(novaRequisicao);
-            if (salvo) {
-                requisicoes.unshift(novaRequisicao);
-                
-                await enviarEmail(emailsAprovadores['RH'], 
-                    `Nova Requisição para Aprovação - ${novoCodigo}`, 
-                    templateNovaRequisicao(novaRequisicao));
-                
-                await enviarNotificacaoTeams(
-                    `📋 Nova Requisição: ${novoCodigo}`,
-                    `**${usuarioAtual.nome}** criou uma nova requisição para **${funcao}** (${dir}).\n\nA requisição aguarda aprovação do RH.`,
-                    '2196F3'
-                );
-                
-                adicionarNotificacao('Nova Requisição', `Requisição ${novoCodigo} criada com sucesso!`, 'info', novaRequisicao.id);
-                
-                fecharModal('modalNovaRequisicao');
-                document.getElementById('formNovaRequisicao').reset();
-                arquivosUpload = [];
-                document.getElementById('fileList').innerHTML = '';
-                filtrarRequisicoes();
-                carregarAprovacoes();
-                atualizarKPIs();
-                atualizarGraficos();
-                mostrarNotificacao(`Requisição ${novoCodigo} criada com sucesso!`, 'success');
-            } else {
-                mostrarNotificacao(`Erro ao salvar no SharePoint. Verifique a lista.`, 'error');
-            }
         }
 
         // ============================================
