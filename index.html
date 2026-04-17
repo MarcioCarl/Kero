@@ -11,7 +11,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* ... (mantenha todos os estilos CSS anteriores) ... */
         * {
             margin: 0;
             padding: 0;
@@ -403,7 +402,9 @@
                                 </div>
                                 <div class="table-container">
                                     <table id="tabelaRequisicoes">
-                                        <thead><tr><th>Código</th><th>Função</th><th>Direção</th><th>Status</th><th>Tipo</th><th>Data Início</th><th>Ações</th></tr></thead>
+                                        <thead>
+                                            <tr><th>Código</th><th>Função</th><th>Direção</th><th>Status</th><th>Tipo</th><th>Data Início</th><th>Ações</th></tr>
+                                        </thead>
                                         <tbody id="corpoTabela"></tbody>
                                     </table>
                                 </div>
@@ -423,7 +424,9 @@
                         <div class="card-header"><div class="card-title">Aprovações Pendentes</div></div>
                         <div class="table-container">
                             <table id="tabelaAprovacoes">
-                                <thead><tr><th>Código</th><th>Função</th><th>Direção</th><th>Status</th><th>Data Criação</th><th>Ações</th></tr></thead>
+                                <thead>
+                                    <tr><th>Código</th><th>Função</th><th>Direção</th><th>Status</th><th>Data Criação</th><th>Ações</th></tr>
+                                </thead>
                                 <tbody id="corpoAprovacoes"></tbody>
                             </table>
                         </div>
@@ -472,7 +475,9 @@
                         <div class="card-header"><div class="card-title">Utilizadores</div></div>
                         <div class="table-container">
                             <table class="users-table">
-                                <thead><tr><th>Nome</th><th>Email</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead>
+                                <thead>
+                                    <tr><th>Nome</th><th>Email</th><th>Perfil</th><th>Status</th><th>Ações</th></tr>
+                                </thead>
                                 <tbody id="tabelaUtilizadores"></tbody>
                             </table>
                         </div>
@@ -607,22 +612,23 @@
 
         const loginRequest = { scopes: ["User.Read", "email", "profile", "openid", "offline_access", "Mail.Send", "Sites.ReadWrite.All"] };
 
-        // Perfis dos usuários
+        // CORREÇÃO: Perfis dos usuários - Apenas os perfis oficiais
         const perfisManuais = {
             'marcio.carlos@accordgrouplda.com': 'Administrador',
             'mario.arao@accordgrouplda.com': 'RH',
-            'forrh1@accordgrouplda.com': 'RH',
-            'FORRHI@accordgrouplda.com': 'RH', 
             'erikson.madureira@accordgrouplda.com': 'Controlo de Gestão',
-            'paulo.silva@accordgrouplda.com': 'Director Geral',
-            'aleixo.francisco@accordgrouplda.com': 'Gerente de Loja'
+            'paulo.silva@accordgrouplda.com': 'Director Geral'
         };
 
-        const PERFIS_QUE_VEEM_TUDO = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral'];
+        // Perfis que podem ver todas as requisições (incluindo Aleixo Francisco)
+        const PERFIS_QUE_VEEM_TUDO = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral', 'Visualizador'];
 
+        // Perfis que podem APROVAR (RH, CG, Director, Admin)
+        const PERFIS_QUE_APROVAM = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral'];
+
+        // Emails dos aprovadores
         const emailsAprovadores = {
             'RH': 'mario.arao@accordgrouplda.com',
-            'RH': 'FORRHI@accordgrouplda.com',
             'Controlo de Gestão': 'erikson.madureira@accordgrouplda.com',
             'Director Geral': 'paulo.silva@accordgrouplda.com',
             'Administrador': 'marcio.carlos@accordgrouplda.com'
@@ -713,11 +719,11 @@
         }
 
         // ============================================
-        // CONTROLE DE ACESSO
+        // CONTROLE DE ACESSO - CORRIGIDO
         // ============================================
         function isAprovador() {
             if (!usuarioAtual) return false;
-            return PERFIS_QUE_VEEM_TUDO.includes(usuarioAtual.perfil);
+            return PERFIS_QUE_APROVAM.includes(usuarioAtual.perfil);
         }
 
         function podeVerRequisicao(req) {
@@ -1053,14 +1059,24 @@
                 const response = await msalInstance.loginPopup(loginRequest);
                 account = response.account;
                 const userInfo = await getUserInfo();
-                const email = userInfo.mail || userInfo.userPrincipalName;
+                const email = (userInfo.mail || userInfo.userPrincipalName).toLowerCase();
+                
+                // Verificar perfil do usuário
                 let perfil = perfisManuais[email] || 'Colaborador';
+                
+                // Regra especial para Aleixo Francisco - Visualizador (vê tudo mas não aprova)
+                if (email === 'aleixo.francisco@accordgrouplda.com') {
+                    perfil = 'Visualizador';
+                }
+                
                 usuarioAtual = { 
                     id: userInfo.id, 
                     nome: userInfo.displayName, 
                     email: email, 
                     perfil: perfil 
                 };
+                
+                console.log('✅ Login realizado:', { email, perfil });
                 
                 localStorage.setItem('keroSessao', JSON.stringify({ 
                     usuarioId: usuarioAtual.id, 
@@ -1130,7 +1146,7 @@
         }
 
         // ============================================
-        // SHAREPOINT - UPLOAD CORRIGIDO DE FICHEIROS
+        // SHAREPOINT - UPLOAD DE FICHEIROS
         // ============================================
         async function getSharePointToken() {
             return await getAccessToken(["Sites.ReadWrite.All"]);
@@ -1182,9 +1198,6 @@
             return driveData.id;
         }
 
-        // ============================================
-        // UPLOAD DE FICHEIROS - VERSÃO CORRIGIDA
-        // ============================================
         async function uploadFicheiroParaSharePoint(arquivo, requisicaoCodigo) {
             try {
                 const token = await getSharePointToken();
@@ -1196,12 +1209,10 @@
                 
                 console.log(`📤 Iniciando upload: ${arquivo.name} (${formatarTamanho(arquivo.size)})`);
                 
-                // Método correto: Upload em duas etapas para arquivos grandes
                 let uploadUrl;
                 let fileData;
                 
                 if (arquivo.size < 4 * 1024 * 1024) {
-                    // Upload simples para arquivos < 4MB
                     const reader = new FileReader();
                     const arrayBufferPromise = new Promise((resolve, reject) => {
                         reader.onload = () => resolve(reader.result);
@@ -1229,7 +1240,6 @@
                     
                     fileData = await response.json();
                 } else {
-                    // Upload em sessão para arquivos grandes
                     uploadUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root:/${pastaNome}/${nomeArquivo}:/createUploadSession`;
                     
                     const sessionResponse = await fetch(uploadUrl, {
@@ -1250,7 +1260,6 @@
                     const sessionData = await sessionResponse.json();
                     const uploadSessionUrl = sessionData.uploadUrl;
                     
-                    // Upload do arquivo em chunks
                     const reader = new FileReader();
                     const arrayBufferPromise = new Promise((resolve, reject) => {
                         reader.onload = () => resolve(reader.result);
@@ -1277,7 +1286,6 @@
                 
                 console.log('✅ Upload concluído:', fileData);
                 
-                // Criar link de compartilhamento
                 const shareResponse = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${fileData.id}/createLink`, {
                     method: 'POST',
                     headers: {
@@ -1317,6 +1325,14 @@
             }
         }
 
+        // CORREÇÃO: Função para gerar código único da requisição
+        function gerarCodigoRequisicao() {
+            const ano = new Date().getFullYear();
+            const mes = String(new Date().getMonth() + 1).padStart(2, '0');
+            const sequencia = String(requisicoes.length + 1).padStart(4, '0');
+            return `REQ-${ano}${mes}-${sequencia}`;
+        }
+
         async function carregarRequisicoesDoSharePoint() {
             showLoading();
             try {
@@ -1334,40 +1350,47 @@
                     console.log('📋 Dados carregados do SharePoint:', listData);
                     
                     if (listData.value && listData.value.length > 0) {
-                        requisicoes = listData.value.map(item => {
+                        // Usar Map para evitar duplicatas por ID
+                        const requisicoesMap = new Map();
+                        
+                        listData.value.forEach(item => {
                             const f = item.fields;
                             
-                            let ficheiros = [];
-                            // Verificar coluna Ficheiros
-                            if (f.Ficheiros) {
-                                try {
-                                    ficheiros = JSON.parse(f.Ficheiros);
-                                    console.log(`📎 Ficheiros carregados para ${f.Title}:`, ficheiros);
-                                } catch (e) {
-                                    console.warn('⚠️ Erro ao parsear Ficheiros:', e, f.Ficheiros);
+                            // Evitar duplicatas pelo ID
+                            if (!requisicoesMap.has(item.id)) {
+                                let ficheiros = [];
+                                if (f.Ficheiros) {
+                                    try {
+                                        ficheiros = JSON.parse(f.Ficheiros);
+                                    } catch (e) {
+                                        console.warn('⚠️ Erro ao parsear Ficheiros:', e);
+                                    }
                                 }
+                                
+                                requisicoesMap.set(item.id, {
+                                    id: item.id,
+                                    codigo: f.Title || `REQ-${item.id}`,
+                                    funcao: f.Funcao || "",
+                                    direcao: f.Direcao || "",
+                                    area: f.Area || "",
+                                    quantidade: f.Quantidade || 1,
+                                    status: f.Status || "em_validacao_rh",
+                                    tipo: f.Typo || "novo_cargo",
+                                    dataCriacao: f.Created || new Date().toISOString(),
+                                    dataInicio: f.DataInicio || new Date().toISOString(),
+                                    criadoPor: f.CriadoPor || "",
+                                    criadoPorEmail: f.CriadoPorEmail || "",
+                                    observacoes: f.Observacoes || "",
+                                    colaboradorSubstituir: f.ColaboradorSubstituir || "",
+                                    motivoSubstituicao: f.MotivoSubstituicao || "",
+                                    justificativaReforco: f.JustificativaReforco || "",
+                                    ficheiros: ficheiros
+                                });
                             }
-                            
-                            return {
-                                id: item.id,
-                                codigo: f.Title || `REQ-${item.id}`,
-                                funcao: f.Funcao || "",
-                                direcao: f.Direcao || "",
-                                area: f.Area || "",
-                                quantidade: f.Quantidade || 1,
-                                status: f.Status || "em_validacao_rh",
-                                tipo: f.Typo || "novo_cargo",
-                                dataCriacao: f.Created || new Date().toISOString(),
-                                dataInicio: f.DataInicio || new Date().toISOString(),
-                                criadoPor: f.CriadoPor || "",
-                                criadoPorEmail: f.CriadoPorEmail || "",
-                                observacoes: f.Observacoes || "",
-                                colaboradorSubstituir: f.ColaboradorSubstituir || "",
-                                motivoSubstituicao: f.MotivoSubstituicao || "",
-                                justificativaReforco: f.JustificativaReforco || "",
-                                ficheiros: ficheiros
-                            };
                         });
+                        
+                        requisicoes = Array.from(requisicoesMap.values());
+                        console.log(`📊 Carregadas ${requisicoes.length} requisições únicas`);
                         mostrarNotificacao(`Carregadas ${requisicoes.length} requisições`, 'success');
                     } else {
                         requisicoes = [];
@@ -1411,7 +1434,6 @@
                     "CriadoPorEmail": req.criadoPorEmail
                 };
                 
-                // Adicionar ficheiros se existirem
                 if (req.ficheiros && req.ficheiros.length > 0) {
                     fields["Ficheiros"] = JSON.stringify(req.ficheiros);
                     console.log('📎 Salvando ficheiros no SharePoint:', req.ficheiros);
@@ -1434,7 +1456,6 @@
                     const errorText = await createResponse.text();
                     console.error('❌ Erro ao salvar no SharePoint:', createResponse.status, errorText);
                     
-                    // Tentar sem Ficheiros se falhar
                     if (fields.Ficheiros) {
                         console.log('🔄 Tentando salvar sem a coluna Ficheiros...');
                         delete fields.Ficheiros;
@@ -1658,9 +1679,12 @@
 
         function getBotoesAcao(req) {
             if (!usuarioAtual) return '';
+            if (!isAprovador()) return '';
+            
             const podeAprovar = (req.status === 'em_validacao_rh' && (usuarioAtual.perfil === 'RH' || usuarioAtual.perfil === 'Administrador')) ||
                 (req.status === 'em_validacao_financas' && (usuarioAtual.perfil === 'Controlo de Gestão' || usuarioAtual.perfil === 'Administrador')) ||
                 (req.status === 'em_validacao_director' && (usuarioAtual.perfil === 'Director Geral' || usuarioAtual.perfil === 'Administrador'));
+            
             if (podeAprovar) {
                 return `<button class="btn-small btn-approve" onclick="event.stopPropagation();abrirModalComentario('${req.id}', 'aprovar')"><i class="fas fa-check"></i> Aprovar</button>
                         <button class="btn-small btn-reject" onclick="event.stopPropagation();abrirModalComentario('${req.id}', 'rejeitar')"><i class="fas fa-times"></i> Rejeitar</button>`;
@@ -1745,11 +1769,10 @@
         }
 
         // ============================================
-        // VISUALIZADOR DE FICHEIROS EMBUTIDO - CORRIGIDO
+        // VISUALIZADOR DE FICHEIROS
         // ============================================
         function gerarVisualizadorFicheiro(ficheiro) {
             const tipo = ficheiro.tipo;
-            // Usar downloadUrl ou url para visualização
             const url = ficheiro.downloadUrl || ficheiro.url || ficheiro.webUrl;
             
             console.log('🖼️ Gerando visualizador para:', ficheiro.nome, 'URL:', url);
@@ -1875,7 +1898,6 @@
                 html += `<div style="margin-bottom: 15px;"><strong>Justificativa do Reforço:</strong> ${req.justificativaReforco || 'N/A'}</div>`;
             }
             
-            // Seção de ficheiros
             const ficheiros = req.ficheiros || [];
             if (ficheiros.length > 0) {
                 window[`ficheiros_${req.id}`] = ficheiros;
@@ -1937,7 +1959,7 @@
             if (!tbody) return;
             
             if (!isAprovador()) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</td></tr>';
                 return;
             }
             
@@ -1947,6 +1969,8 @@
             else if (usuarioAtual?.perfil === 'Director Geral') pendentes = requisicoes.filter(r => r.status === 'em_validacao_director');
             else if (usuarioAtual?.perfil === 'Administrador') pendentes = requisicoes.filter(r => ['em_validacao_rh', 'em_validacao_financas', 'em_validacao_director'].includes(r.status));
             
+            console.log(`📋 Aprovações para ${usuarioAtual?.perfil}: ${pendentes.length} pendentes`);
+            
             if (pendentes.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente</td></tr>';
                 return;
@@ -1954,7 +1978,7 @@
             
             tbody.innerHTML = pendentes.map(r => `
                 <tr onclick="visualizarRequisicao('${r.id}')">
-                    <td>${r.codigo}</td>
+                    <td>${r.codigo}${r.ficheiros && r.ficheiros.length > 0 ? ' 📎' : ''}</td>
                     <td>${r.funcao}</td>
                     <td>${r.direcao}</td>
                     <td><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></td>
@@ -2174,7 +2198,8 @@
             
             showLoading();
             
-            const novoCodigo = `REQ-${new Date().getFullYear()}-${String(requisicoes.length + 1).padStart(3, '0')}`;
+            // CORREÇÃO: Gerar código único
+            const novoCodigo = gerarCodigoRequisicao();
             
             let ficheirosSalvos = [];
             if (arquivosUpload.length > 0) {
