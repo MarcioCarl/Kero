@@ -455,6 +455,11 @@
             color: #c62828;
         }
 
+        .status-devolvida_solicitante {
+            background-color: #ffb74d;
+            color: #e65100;
+        }
+
         .btn-small {
             padding: 5px 10px;
             border-radius: 4px;
@@ -494,6 +499,16 @@
 
             .btn-reject:hover {
                 background-color: #da190b;
+                transform: scale(1.02);
+            }
+
+        .btn-devolver {
+            background-color: #ff9800;
+            color: white;
+        }
+
+            .btn-devolver:hover {
+                background-color: #fb8c00;
                 transform: scale(1.02);
             }
 
@@ -1291,6 +1306,10 @@
             border-left-color: #2196F3;
         }
 
+        .historico-devolver {
+            border-left-color: #ff9800;
+        }
+
         .historico-header {
             display: flex;
             justify-content: space-between;
@@ -1560,7 +1579,7 @@
                             <div class="filter-section">
                                 <h3>Filtros</h3>
                                 <div class="filter-group"><label>Pesquisar</label><input type="text" id="filterPesquisa" placeholder="Código, função..."></div>
-                                <div class="filter-group"><label>Status</label><select id="filterStatus"><option value="all">Todos</option><option value="em_validacao_rh">RH</option><option value="em_validacao_financas">Controlo Gestão</option><option value="em_validacao_director">Director</option><option value="aprovada">Aprovada</option><option value="rejeitada">Rejeitada</option></select></div>
+                                <div class="filter-group"><label>Status</label><select id="filterStatus"><option value="all">Todos</option><option value="em_validacao_rh">RH</option><option value="em_validacao_financas">Controlo Gestão</option><option value="em_validacao_director">Director</option><option value="aprovada">Aprovada</option><option value="rejeitada">Rejeitada</option><option value="devolvida_solicitante">Devolvida</option></select></div>
                                 <div class="filter-group"><label>Direção</label><select id="filterDirecao"><option value="all">Todas</option></select></div>
                                 <div><button class="btn-filter btn-filter-clear" onclick="limparFiltros()">Limpar</button><button class="btn-filter btn-filter-apply" onclick="filtrarRequisicoes()">Aplicar</button></div>
                             </div>
@@ -1616,7 +1635,7 @@
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                                 <div class="form-group"><label>Data Início</label><input type="date" id="relatorioDataInicio" class="form-control"></div>
                                 <div class="form-group"><label>Data Fim</label><input type="date" id="relatorioDataFim" class="form-control"></div>
-                                <div class="form-group"><label>Status</label><select id="relatorioStatus" class="form-control"><option value="all">Todos</option><option value="aprovada">Aprovadas</option><option value="rejeitada">Rejeitadas</option><option value="em_validacao_rh">Pendentes RH</option><option value="em_validacao_financas">Pendentes CG</option><option value="em_validacao_director">Pendentes Director</option></select></div>
+                                <div class="form-group"><label>Status</label><select id="relatorioStatus" class="form-control"><option value="all">Todos</option><option value="aprovada">Aprovadas</option><option value="rejeitada">Rejeitadas</option><option value="em_validacao_rh">Pendentes RH</option><option value="em_validacao_financas">Pendentes CG</option><option value="em_validacao_director">Pendentes Director</option><option value="devolvida_solicitante">Devolvidas</option></select></div>
                             </div>
                         </div>
                     </div>
@@ -1762,12 +1781,12 @@
 
     <div class="modal" id="modalComentario">
         <div class="modal-content">
-            <div class="modal-header"><h2>Comentário</h2><span class="close-modal" onclick="fecharModal('modalComentario')">&times;</span></div>
+            <div class="modal-header"><h2 id="comentarioTitulo">Comentário</h2><span class="close-modal" onclick="fecharModal('modalComentario')">&times;</span></div>
             <div class="modal-body">
                 <form id="formComentario">
                     <input type="hidden" id="comentarioRequisicaoId"><input type="hidden" id="comentarioAcao">
-                    <div class="form-group"><label>Comentário *</label><textarea id="comentario" class="form-control" rows="4" required placeholder="Digite seu comentário sobre esta aprovação/rejeição..."></textarea></div>
-                    <div class="form-actions"><button type="button" class="btn-small" onclick="fecharModal('modalComentario')">Cancelar</button><button type="submit" class="btn-small btn-approve">Confirmar</button></div>
+                    <div class="form-group"><label>Comentário *</label><textarea id="comentario" class="form-control" rows="4" required placeholder="Digite seu comentário..."></textarea></div>
+                    <div class="form-actions"><button type="button" class="btn-small" onclick="fecharModal('modalComentario')">Cancelar</button><button type="submit" class="btn-small btn-approve" id="comentarioBtnSubmit">Confirmar</button></div>
                 </form>
             </div>
         </div>
@@ -1896,7 +1915,7 @@
         }
 
         function getStatusText(s) {
-            const m = { 'em_validacao_rh': 'Em Validação RH', 'em_validacao_financas': 'Em Validação CG', 'em_validacao_director': 'Em Validação Director', 'aprovada': 'Aprovada', 'rejeitada': 'Rejeitada' };
+            const m = { 'em_validacao_rh': 'Em Validação RH', 'em_validacao_financas': 'Em Validação CG', 'em_validacao_director': 'Em Validação Director', 'aprovada': 'Aprovada', 'rejeitada': 'Rejeitada', 'devolvida_solicitante': 'Devolvida para Edição' };
             return m[s] || s;
         }
 
@@ -2069,9 +2088,27 @@
         function podeEditarRequisicao(req) {
             if (!usuarioAtual) return false;
             if (usuarioAtual.email === 'aleixo.francisco@accordgrouplda.com') return false;
-            if (usuarioAtual.perfil !== 'RH' && usuarioAtual.perfil !== 'Administrador') return false;
-            if (req.status === 'aprovada' || req.status === 'rejeitada') return false;
+            if (usuarioAtual.perfil === 'Administrador') return true;
+            // Criador pode editar quando está devolvida
+            if (req.status === 'devolvida_solicitante' && usuarioAtual.email === req.criadoPorEmail) return true;
+            // RH pode editar quando em validação RH
+            if (usuarioAtual.perfil === 'RH' && req.status === 'em_validacao_rh') return true;
+            // Controlo de Gestão pode editar quando em validação CG (após devolução do Director)
+            if (usuarioAtual.perfil === 'Controlo de Gestão' && req.status === 'em_validacao_financas') return true;
+            // Director pode editar quando em validação Director (opcional, mas útil)
+            if (usuarioAtual.perfil === 'Director Geral' && req.status === 'em_validacao_director') return true;
+            // Não pode editar se já aprovou
             if (utilizadorJaAprovou(req)) return false;
+            return false;
+        }
+
+        function podeDevolverRequisicao(req) {
+            if (!usuarioAtual) return false;
+            if (!isAprovador()) return false;
+            if (utilizadorJaAprovou(req)) return false;
+            if (req.criadoPorEmail === usuarioAtual.email) return false;
+            // Apenas pode devolver se tiver permissão de aprovar no status atual
+            if (!podeAprovarStatus(req)) return false;
             return true;
         }
 
@@ -2103,7 +2140,7 @@
                 comentario: comentario,
                 data: new Date().toISOString(),
                 statusAnterior: req.status,
-                statusNovo: acao === 'aprovar' ? getProximoStatus(req.status) : acao === 'rejeitar' ? 'rejeitada' : req.status
+                statusNovo: acao === 'aprovar' ? getProximoStatus(req.status) : acao === 'rejeitar' ? 'rejeitada' : (acao === 'devolver' ? (req.status === 'em_validacao_rh' ? 'devolvida_solicitante' : (req.status === 'em_validacao_financas' ? 'em_validacao_rh' : 'em_validacao_financas')) : req.status)
             });
         }
 
@@ -2279,6 +2316,10 @@
 
         function templateEdicao(req, alteracoes) {
             return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #2196F3;">Requisição Editada</h2><p><strong>Código:</strong> ${req.codigo}</p><p><strong>Editada por:</strong> ${usuarioAtual.nome} (${usuarioAtual.perfil})</p><p><strong>Alterações:</strong> ${alteracoes}</p><hr><p>Por favor, verifique as alterações no sistema.</p><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
+        }
+
+        function templateDevolucao(req, devolvidoPor, comentario, destinatarioPerfil) {
+            return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #ff9800;">Requisição Devolvida para Correção</h2><p><strong>Código:</strong> ${req.codigo}</p><p><strong>Função:</strong> ${req.funcao}</p><p><strong>Devolvido por:</strong> ${devolvidoPor} (${usuarioAtual.perfil})</p><p><strong>Comentário:</strong> ${comentario}</p><p><strong>Destinatário:</strong> ${destinatarioPerfil}</p><p>Por favor, efetue as correções necessárias e reenvie a requisição.</p><hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
         }
 
         // ============================================
@@ -2723,7 +2764,10 @@
             if (podeEditarRequisicao(req)) { botoes += `<button class="btn-small btn-edit" onclick="event.stopPropagation();editarRequisicao('${req.id}')"><i class="fas fa-edit"></i> Editar</button>`; }
             if (isAprovador() && !utilizadorJaAprovou(req) && podeAprovarStatus(req) && req.criadoPorEmail !== usuarioAtual.email) {
                 botoes += `<button class="btn-small btn-approve" onclick="event.stopPropagation();abrirModalComentario('${req.id}', 'aprovar')"><i class="fas fa-check"></i> Aprovar</button>
-                               <button class="btn-small btn-reject" onclick="event.stopPropagation();abrirModalComentario('${req.id}', 'rejeitar')"><i class="fas fa-times"></i> Rejeitar</button>`;
+                           <button class="btn-small btn-reject" onclick="event.stopPropagation();abrirModalComentario('${req.id}', 'rejeitar')"><i class="fas fa-times"></i> Rejeitar</button>`;
+                if (podeDevolverRequisicao(req)) {
+                    botoes += `<button class="btn-small btn-devolver" onclick="event.stopPropagation();abrirModalComentario('${req.id}', 'devolver')"><i class="fas fa-undo-alt"></i> Devolver</button>`;
+                }
             }
             return botoes;
         }
@@ -2770,10 +2814,20 @@
                 if (!req.historicoComentarios) req.historicoComentarios = [];
                 req.historicoComentarios.unshift({ id: Date.now().toString(), acao: 'edicao', usuario: usuarioAtual.nome, perfil: usuarioAtual.perfil, comentario: `Requisição editada por ${usuarioAtual.nome}. Alterações: ${alteracoes.join(', ')}`, data: new Date().toISOString(), statusAnterior: req.status, statusNovo: req.status });
             }
+            const statusAntesEdicao = req.status;
             const atualizado = await atualizarRequisicaoNoSharePoint(req);
             if (atualizado) {
                 await salvarHistoricoNoSharePoint(req);
-                mostrarNotificacao('Requisição editada com sucesso!', 'success');
+                // Se a requisição estava devolvida ao solicitante e quem editou é o criador, reenviar para RH
+                if (statusAntesEdicao === 'devolvida_solicitante' && usuarioAtual.email === req.criadoPorEmail) {
+                    req.status = 'em_validacao_rh';
+                    await atualizarRequisicaoNoSharePoint(req);
+                    await enviarEmail(emailsAprovadores['RH'], `Requisição Reenviada - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, "Reenviada após correções", "RH"));
+                    await enviarNotificacaoTeams(`🔄 Requisição Reenviada: ${req.codigo}`, `A requisição foi corrigida e reenviada por ${usuarioAtual.nome}. Aguarda aprovação do RH.`, '2196F3');
+                    mostrarNotificacao(`Requisição ${req.codigo} reenviada para aprovação do RH!`, 'success');
+                } else {
+                    mostrarNotificacao('Requisição editada com sucesso!', 'success');
+                }
                 if (alteracoes.length > 0) { await enviarEmail(req.criadoPorEmail, `Requisição ${req.codigo} foi editada por ${usuarioAtual.nome}`, templateEdicao(req, alteracoes.join(', '))); }
                 fecharModal('modalEditarRequisicao');
                 filtrarRequisicoes();
@@ -2787,6 +2841,24 @@
             document.getElementById('comentarioRequisicaoId').value = id;
             document.getElementById('comentarioAcao').value = acao;
             document.getElementById('comentario').value = '';
+            const titulo = document.getElementById('comentarioTitulo');
+            const btnSubmit = document.getElementById('comentarioBtnSubmit');
+            if (acao === 'aprovar') {
+                titulo.textContent = 'Aprovar Requisição';
+                btnSubmit.textContent = 'Confirmar Aprovação';
+                btnSubmit.classList.remove('btn-devolver');
+                btnSubmit.classList.add('btn-approve');
+            } else if (acao === 'rejeitar') {
+                titulo.textContent = 'Rejeitar Requisição';
+                btnSubmit.textContent = 'Confirmar Rejeição';
+                btnSubmit.classList.remove('btn-devolver');
+                btnSubmit.classList.add('btn-reject');
+            } else if (acao === 'devolver') {
+                titulo.textContent = 'Devolver para Edição';
+                btnSubmit.textContent = 'Confirmar Devolução';
+                btnSubmit.classList.remove('btn-approve', 'btn-reject');
+                btnSubmit.classList.add('btn-devolver');
+            }
             abrirModal('modalComentario');
         }
 
@@ -2797,12 +2869,15 @@
             const coment = document.getElementById('comentario').value;
             const req = requisicoes.find(r => r.id === id);
             if (!req || !coment) { mostrarNotificacao('Comentário obrigatório', 'error'); return; }
-            if (utilizadorJaAprovou(req) && acao === 'aprovar') { mostrarNotificacao('Você já aprovou esta requisição anteriormente!', 'warning'); fecharModal('modalComentario'); return; }
-            if (!podeAprovarStatus(req) && acao === 'aprovar') { mostrarNotificacao('Você não tem permissão para aprovar esta requisição no estado atual!', 'error'); fecharModal('modalComentario'); return; }
-            if (acao === 'aprovar' && req.criadoPorEmail === usuarioAtual.email) { mostrarNotificacao('Não pode aprovar uma requisição que você mesmo criou!', 'error'); fecharModal('modalComentario'); return; }
-            adicionarAoHistorico(req, acao, coment);
-            await salvarHistoricoNoSharePoint(req);
-            if (acao === 'aprovar') {
+
+            if (acao === 'devolver') {
+                await processarDevolucao(req, coment);
+            } else if (acao === 'aprovar') {
+                if (utilizadorJaAprovou(req)) { mostrarNotificacao('Você já aprovou esta requisição anteriormente!', 'warning'); fecharModal('modalComentario'); return; }
+                if (!podeAprovarStatus(req)) { mostrarNotificacao('Você não tem permissão para aprovar esta requisição no estado atual!', 'error'); fecharModal('modalComentario'); return; }
+                if (req.criadoPorEmail === usuarioAtual.email) { mostrarNotificacao('Não pode aprovar uma requisição que você mesmo criou!', 'error'); fecharModal('modalComentario'); return; }
+                adicionarAoHistorico(req, acao, coment);
+                await salvarHistoricoNoSharePoint(req);
                 if (req.status === 'em_validacao_rh') {
                     req.status = 'em_validacao_financas';
                     await atualizarRequisicaoNoSharePoint(req);
@@ -2821,11 +2896,54 @@
                     mostrarNotificacao(`Requisição ${req.codigo} APROVADA!`, 'success');
                 }
             } else if (acao === 'rejeitar') {
+                adicionarAoHistorico(req, acao, coment);
+                await salvarHistoricoNoSharePoint(req);
                 req.status = 'rejeitada';
                 await atualizarRequisicaoNoSharePoint(req);
                 await enviarEmail(req.criadoPorEmail, `Requisição Rejeitada - ${req.codigo}`, templateRejeicao(req, usuarioAtual.nome, coment));
                 mostrarNotificacao(`Requisição ${req.codigo} REJEITADA!`, 'warning');
             }
+            fecharModal('modalComentario');
+            filtrarRequisicoes();
+            carregarAprovacoes();
+            atualizarKPIs();
+        }
+
+        async function processarDevolucao(req, comentario) {
+            if (!podeDevolverRequisicao(req)) { mostrarNotificacao('Não tem permissão para devolver esta requisição!', 'error'); fecharModal('modalComentario'); return; }
+
+            let novoStatus = req.status;
+            let destinatarioEmail = '';
+            let destinatarioPerfil = '';
+            if (req.status === 'em_validacao_rh') {
+                novoStatus = 'devolvida_solicitante';
+                destinatarioEmail = req.criadoPorEmail;
+                destinatarioPerfil = 'Solicitante';
+            } else if (req.status === 'em_validacao_financas') {
+                novoStatus = 'em_validacao_rh';
+                destinatarioEmail = emailsAprovadores['RH'];
+                destinatarioPerfil = 'RH';
+            } else if (req.status === 'em_validacao_director') {
+                novoStatus = 'em_validacao_financas';
+                destinatarioEmail = emailsAprovadores['Controlo de Gestão'];
+                destinatarioPerfil = 'Controlo de Gestão';
+            } else {
+                mostrarNotificacao('Não é possível devolver esta requisição no estado atual', 'warning');
+                fecharModal('modalComentario');
+                return;
+            }
+
+            adicionarAoHistorico(req, 'devolver', comentario);
+            req.status = novoStatus;
+            await atualizarRequisicaoNoSharePoint(req);
+            await salvarHistoricoNoSharePoint(req);
+
+            // Enviar notificações
+            await enviarEmail(destinatarioEmail, `Requisição Devolvida para Correção - ${req.codigo}`, templateDevolucao(req, usuarioAtual.nome, comentario, destinatarioPerfil));
+            await enviarNotificacaoTeams(`🔄 Requisição Devolvida: ${req.codigo}`, `A requisição foi devolvida por ${usuarioAtual.nome} para ${destinatarioPerfil}. Motivo: ${comentario}`, 'ff9800');
+            adicionarNotificacao('Requisição Devolvida', `A requisição ${req.codigo} foi devolvida para ${destinatarioPerfil} para correção.`, 'warning', req.id);
+
+            mostrarNotificacao(`Requisição ${req.codigo} devolvida para ${destinatarioPerfil}!`, 'warning');
             fecharModal('modalComentario');
             filtrarRequisicoes();
             carregarAprovacoes();
@@ -2909,6 +3027,7 @@
                     if (reg.acao === 'aprovar') { icone = '✅'; cor = '#4CAF50'; }
                     else if (reg.acao === 'rejeitar') { icone = '❌'; cor = '#f44336'; }
                     else if (reg.acao === 'edicao') { icone = '✏️'; cor = '#2196F3'; }
+                    else if (reg.acao === 'devolver') { icone = '🔄'; cor = '#ff9800'; }
                     html += `<div class="historico-item" style="border-left-color:${cor};"><div class="historico-header"><div><strong>${icone} ${reg.acao.toUpperCase()}</strong> - ${reg.usuario} (${reg.perfil})</div><div>${formatarDataHora(reg.data)}</div></div><div class="historico-comentario">${reg.comentario}</div></div>`;
                 });
                 html += `</div></div>`;
@@ -2929,7 +3048,7 @@
         function carregarAprovacoes() {
             const tbody = document.getElementById('corpoAprovacoes');
             if (!tbody) return;
-            if (!isAprovador()) { tbody.innerHTML = '<td><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</span></td></tr>'; return; }
+            if (!isAprovador()) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</span></td></tr>'; return; }
             let pendentes = [];
             if (usuarioAtual?.perfil === 'Administrador') pendentes = requisicoes.filter(r => ['em_validacao_rh', 'em_validacao_financas', 'em_validacao_director'].includes(r.status));
             else if (usuarioAtual?.perfil === 'RH') pendentes = requisicoes.filter(r => r.status === 'em_validacao_rh');
@@ -2942,7 +3061,7 @@
                                 <td onclick="visualizarRequisicao('${r.id}')"><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></td>
                                 <td onclick="visualizarRequisicao('${r.id}')">${formatarData(r.dataCriacao)}</span></td>
                                 <td><div class="action-buttons">${getBotoesAcao(r)}</div></td>
-                            </tr>`).join('');
+                            </table>`).join('');
         }
 
         function carregarDashboard() {
@@ -2974,10 +3093,10 @@
                 graficos.status = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Aprovadas', 'Pendentes RH', 'Pendentes CG', 'Pendentes Director'],
+                        labels: ['Aprovadas', 'Pendentes RH', 'Pendentes CG', 'Pendentes Director', 'Devolvidas'],
                         datasets: [{
-                            data: [0, 0, 0, 0],
-                            backgroundColor: ['#4CAF50', '#FF9800', '#FFC107', '#FF5722']
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: ['#4CAF50', '#FF9800', '#FFC107', '#FF5722', '#ffb74d']
                         }]
                     },
                     options: {
@@ -2996,7 +3115,8 @@
             const pendRH = requisicoesVisiveis.filter(r => r.status === 'em_validacao_rh').length;
             const pendCG = requisicoesVisiveis.filter(r => r.status === 'em_validacao_financas').length;
             const pendDir = requisicoesVisiveis.filter(r => r.status === 'em_validacao_director').length;
-            graficos.status.data.datasets[0].data = [aprov, pendRH, pendCG, pendDir];
+            const devolvidas = requisicoesVisiveis.filter(r => r.status === 'devolvida_solicitante').length;
+            graficos.status.data.datasets[0].data = [aprov, pendRH, pendCG, pendDir, devolvidas];
             graficos.status.update();
         }
 
