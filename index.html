@@ -2089,15 +2089,10 @@
             if (!usuarioAtual) return false;
             if (usuarioAtual.email === 'aleixo.francisco@accordgrouplda.com') return false;
             if (usuarioAtual.perfil === 'Administrador') return true;
-            // Criador pode editar quando está devolvida
             if (req.status === 'devolvida_solicitante' && usuarioAtual.email === req.criadoPorEmail) return true;
-            // RH pode editar quando em validação RH
             if (usuarioAtual.perfil === 'RH' && req.status === 'em_validacao_rh') return true;
-            // Controlo de Gestão pode editar quando em validação CG (após devolução do Director)
             if (usuarioAtual.perfil === 'Controlo de Gestão' && req.status === 'em_validacao_financas') return true;
-            // Director pode editar quando em validação Director (opcional, mas útil)
             if (usuarioAtual.perfil === 'Director Geral' && req.status === 'em_validacao_director') return true;
-            // Não pode editar se já aprovou
             if (utilizadorJaAprovou(req)) return false;
             return false;
         }
@@ -2107,7 +2102,6 @@
             if (!isAprovador()) return false;
             if (utilizadorJaAprovou(req)) return false;
             if (req.criadoPorEmail === usuarioAtual.email) return false;
-            // Apenas pode devolver se tiver permissão de aprovar no status atual
             if (!podeAprovarStatus(req)) return false;
             return true;
         }
@@ -2201,12 +2195,14 @@
         });
 
         // ============================================
-        // SERVIÇO DE EMAIL
+        // SERVIÇO DE EMAIL (MODIFICADO PARA INCLUIR ADMIN)
         // ============================================
         async function enviarEmail(destinatario, assunto, corpoHtml) {
             if (!configuracoes.emailNotif) return false;
             try {
                 const token = await getAccessToken(["Mail.Send"]);
+                
+                // Construir objeto de email com CC para o administrador (se diferente do destinatário)
                 const email = {
                     message: {
                         subject: assunto,
@@ -2215,6 +2211,16 @@
                     },
                     saveToSentItems: "true"
                 };
+                
+                // Adicionar administrador em CC se configurado e se não for o mesmo destinatário
+                const adminEmail = configuracoes.emailAdmin;
+                if (adminEmail && adminEmail.trim() !== "" && adminEmail !== destinatario) {
+                    email.message.ccRecipients = [{ emailAddress: { address: adminEmail } }];
+                } else if (adminEmail && adminEmail === destinatario) {
+                    // Se o destinatário já é o admin, não adicionar duplicado
+                    console.log("Admin já é o destinatário principal, não será adicionado em CC.");
+                }
+                
                 const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -2745,7 +2751,7 @@
         function carregarRequisicoes() {
             const tbody = document.getElementById('corpoTabela');
             if (!tbody) return;
-            if (requisicoesFiltradas.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma requisição encontrada</span></td></tr>'; return; }
+            if (requisicoesFiltradas.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma requisição encontrada</span>NonNullable</td></tr>'; return; }
             const inicio = (estado.paginaAtual - 1) * estado.itensPorPagina;
             const itens = requisicoesFiltradas.slice(inicio, inicio + estado.itensPorPagina);
             tbody.innerHTML = itens.map(r => {
@@ -2818,7 +2824,6 @@
             const atualizado = await atualizarRequisicaoNoSharePoint(req);
             if (atualizado) {
                 await salvarHistoricoNoSharePoint(req);
-                // Se a requisição estava devolvida ao solicitante e quem editou é o criador, reenviar para RH
                 if (statusAntesEdicao === 'devolvida_solicitante' && usuarioAtual.email === req.criadoPorEmail) {
                     req.status = 'em_validacao_rh';
                     await atualizarRequisicaoNoSharePoint(req);
@@ -2891,8 +2896,11 @@
                 } else if (req.status === 'em_validacao_director') {
                     req.status = 'aprovada';
                     await atualizarRequisicaoNoSharePoint(req);
-                    const emailsDestinatarios = [req.criadoPorEmail, emailsAprovadores['RH']];
-                    for (const email of emailsDestinatarios) { await enviarEmail(email, `Requisição Aprovada - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment)); }
+                    // INCLUIR O ALEIXO NA APROVAÇÃO FINAL
+                    const emailsDestinatarios = [req.criadoPorEmail, emailsAprovadores['RH'], 'aleixo.francisco@accordgrouplda.com'];
+                    for (const email of emailsDestinatarios) { 
+                        await enviarEmail(email, `Requisição Aprovada - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment)); 
+                    }
                     mostrarNotificacao(`Requisição ${req.codigo} APROVADA!`, 'success');
                 }
             } else if (acao === 'rejeitar') {
@@ -2938,7 +2946,6 @@
             await atualizarRequisicaoNoSharePoint(req);
             await salvarHistoricoNoSharePoint(req);
 
-            // Enviar notificações
             await enviarEmail(destinatarioEmail, `Requisição Devolvida para Correção - ${req.codigo}`, templateDevolucao(req, usuarioAtual.nome, comentario, destinatarioPerfil));
             await enviarNotificacaoTeams(`🔄 Requisição Devolvida: ${req.codigo}`, `A requisição foi devolvida por ${usuarioAtual.nome} para ${destinatarioPerfil}. Motivo: ${comentario}`, 'ff9800');
             adicionarNotificacao('Requisição Devolvida', `A requisição ${req.codigo} foi devolvida para ${destinatarioPerfil} para correção.`, 'warning', req.id);
@@ -3048,20 +3055,20 @@
         function carregarAprovacoes() {
             const tbody = document.getElementById('corpoAprovacoes');
             if (!tbody) return;
-            if (!isAprovador()) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</span></td></tr>'; return; }
+            if (!isAprovador()) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</span>NonNullableNonNullable</td>'; return; }
             let pendentes = [];
             if (usuarioAtual?.perfil === 'Administrador') pendentes = requisicoes.filter(r => ['em_validacao_rh', 'em_validacao_financas', 'em_validacao_director'].includes(r.status));
             else if (usuarioAtual?.perfil === 'RH') pendentes = requisicoes.filter(r => r.status === 'em_validacao_rh');
             else if (usuarioAtual?.perfil === 'Controlo de Gestão') pendentes = requisicoes.filter(r => r.status === 'em_validacao_financas');
             else if (usuarioAtual?.perfil === 'Director Geral') pendentes = requisicoes.filter(r => r.status === 'em_validacao_director');
             pendentes = pendentes.filter(r => !utilizadorJaAprovou(r) && r.criadoPorEmail !== usuarioAtual.email);
-            if (pendentes.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente</span></td></tr>'; return; }
+            if (pendentes.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente</span>NonNullableNonNullable</td>'; return; }
             tbody.innerHTML = pendentes.map(r => `<tr onclick="visualizarRequisicao('${r.id}')"><td>${r.codigo}${r.ficheiros && r.ficheiros.length > 0 ? ' 📎' : ''}${podeEditarRequisicao(r) ? '<span class="edit-badge" data-tooltip="Pode editar esta requisição"></span>' : ''}</td><td onclick="visualizarRequisicao('${r.id}')">${r.funcao}
                                             <td onclick="visualizarRequisicao('${r.id}')">${r.direcao}</td>
                                 <td onclick="visualizarRequisicao('${r.id}')"><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></td>
                                 <td onclick="visualizarRequisicao('${r.id}')">${formatarData(r.dataCriacao)}</span></td>
                                 <td><div class="action-buttons">${getBotoesAcao(r)}</div></td>
-                            </table>`).join('');
+                            </tr>`).join('');
         }
 
         function carregarDashboard() {
