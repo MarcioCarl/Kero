@@ -1763,7 +1763,7 @@
                 <form id="formComentario">
                     <input type="hidden" id="comentarioRequisicaoId"><input type="hidden" id="comentarioAcao">
                     <div class="form-group" id="comentarioGroup">
-                        <label>Comentário <span id="comentarioObrigatorio" style="color:red;">*</span></label>
+                        <label>Comentário <span id="comentarioObrigatorio" style="color:red; display:none;">*</span></label>
                         <textarea id="comentario" class="form-control" rows="4" placeholder="Digite seu comentário..."></textarea>
                     </div>
                     <div class="form-actions"><button type="button" class="btn-small" onclick="fecharModal('modalComentario')">Cancelar</button><button type="submit" class="btn-small btn-approve" id="comentarioBtnSubmit">Confirmar</button></div>
@@ -1819,6 +1819,7 @@
             'aleixo.francisco@accordgrouplda.com': 'Recrutador'
         };
 
+        // Todos os perfis que podem ver todas as requisições (inclui aprovadores e recrutador)
         const PERFIS_QUE_VEEM_TUDO = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral', 'Recrutador'];
         const PERFIS_QUE_APROVAM = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral'];
         const PERFIS_QUE_PODEM_CRIAR = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral', 'Colaborador', 'Recrutador'];
@@ -2070,7 +2071,9 @@
 
         function podeVerRequisicao(req) {
             if (!usuarioAtual) return false;
+            // Perfis com acesso total veem tudo
             if (PERFIS_QUE_VEEM_TUDO.includes(usuarioAtual.perfil)) return true;
+            // Utilizadores normais veem apenas as suas próprias requisições
             return req.criadoPorEmail === usuarioAtual.email;
         }
 
@@ -2205,7 +2208,7 @@
         });
 
         // ============================================
-        // SERVIÇO DE EMAIL
+        // SERVIÇO DE EMAIL (com prevenção de duplicados)
         // ============================================
         async function enviarEmail(destinatario, assunto, corpoHtml) {
             if (!configuracoes.emailNotif) return false;
@@ -2232,23 +2235,25 @@
                     body: JSON.stringify(email)
                 });
                 const sucesso = response.ok;
+                // Guardar no histórico (sem exibir painel)
                 historicoEmails.unshift({ id: Date.now(), destinatario, assunto, data: new Date().toISOString(), status: sucesso ? 'enviado' : 'erro' });
                 if (historicoEmails.length > 50) historicoEmails.pop();
-                // Não atualizar painel visual pois ele foi removido
                 return sucesso;
             } catch (error) { console.error('Erro ao enviar email:', error); return false; }
         }
 
-        async function enviarEmailParaTodos(assunto, corpoHtml, idsExcluir = []) {
-            const emails = [
+        async function enviarEmailParaTodos(assunto, corpoHtml, emailsExcluir = []) {
+            const emailsBase = [
                 'aleixo.francisco@accordgrouplda.com',
                 'marcio.carlos@accordgrouplda.com',
                 'mario.arao@accordgrouplda.com',
                 'dircg@accordgrouplda.com',
                 'paulo.silva@accordgrouplda.com'
             ];
-            for (const email of emails) {
-                if (!idsExcluir.includes(email)) await enviarEmail(email, assunto, corpoHtml);
+            // Remove duplicados e excluídos
+            const destinatarios = [...new Set(emailsBase.filter(e => !emailsExcluir.includes(e)))];
+            for (const email of destinatarios) {
+                await enviarEmail(email, assunto, corpoHtml);
             }
         }
 
@@ -2495,7 +2500,6 @@
                 const pastaNome = `Requisicao_${requisicaoCodigo}`;
                 const nomeArquivo = `${Date.now()}_${arquivo.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
 
-                // Criar pasta se não existir (tenta fazer upload dentro da pasta)
                 let fileData;
                 if (arquivo.size < 4 * 1024 * 1024) {
                     const reader = new FileReader();
@@ -2832,7 +2836,7 @@
         function carregarRequisicoes() {
             const tbody = document.getElementById('corpoTabela');
             if (!tbody) return;
-            if (requisicoesFiltradas.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma requisição encontrada</td></tr>'; return; }
+            if (requisicoesFiltradas.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma requisição encontrada</span>NonNullable</span>'; return; }
             const inicio = (estado.paginaAtual - 1) * estado.itensPorPagina;
             const itens = requisicoesFiltradas.slice(inicio, inicio + estado.itensPorPagina);
             tbody.innerHTML = itens.map(r => {
@@ -2939,7 +2943,6 @@
             const titulo = document.getElementById('comentarioTitulo');
             const btnSubmit = document.getElementById('comentarioBtnSubmit');
             const obrigatorioSpan = document.getElementById('comentarioObrigatorio');
-            const comentarioGroup = document.getElementById('comentarioGroup');
             
             if (acao === 'aprovar') {
                 titulo.textContent = 'Aprovar Requisição';
@@ -2976,49 +2979,84 @@
                 return;
             }
 
-            if (acao === 'devolver') {
-                await processarDevolucao(req, coment);
-            } else if (acao === 'aprovar') {
-                if (utilizadorJaAprovou(req)) { mostrarNotificacao('Você já aprovou esta requisição anteriormente!', 'warning'); fecharModal('modalComentario'); return; }
-                if (!podeAprovarStatus(req)) { mostrarNotificacao('Você não tem permissão para aprovar esta requisição no estado atual!', 'error'); fecharModal('modalComentario'); return; }
-                if (req.criadoPorEmail === usuarioAtual.email) { mostrarNotificacao('Não pode aprovar uma requisição que você mesmo criou!', 'error'); fecharModal('modalComentario'); return; }
-                adicionarAoHistorico(req, acao, coment || 'Aprovado sem comentários');
-                await salvarHistoricoNoSharePoint(req);
-                if (req.status === 'em_validacao_rh') {
-                    req.status = 'em_validacao_financas';
-                    await atualizarRequisicaoNoSharePoint(req);
-                    await enviarEmail(emailsAprovadores['Controlo de Gestão'], `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, 'Controlo de Gestão'));
-                    mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo RH!`, 'success');
-                } else if (req.status === 'em_validacao_financas') {
-                    req.status = 'em_validacao_director';
-                    await atualizarRequisicaoNoSharePoint(req);
-                    await enviarEmail(emailsAprovadores['Director Geral'], `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, 'Director Geral'));
-                    mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo CG!`, 'success');
-                } else if (req.status === 'em_validacao_director') {
-                    req.status = 'aprovada';
-                    await atualizarRequisicaoNoSharePoint(req);
-                    const emailsDestinatarios = [req.criadoPorEmail, emailsAprovadores['RH'], 'aleixo.francisco@accordgrouplda.com'];
-                    for (const email of emailsDestinatarios) { 
-                        await enviarEmail(email, `Requisição Aprovada - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment)); 
+            // Desabilitar botão para evitar duplo envio
+            const submitBtn = document.getElementById('comentarioBtnSubmit');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processando...';
+
+            try {
+                if (acao === 'devolver') {
+                    await processarDevolucao(req, coment);
+                } else if (acao === 'aprovar') {
+                    if (utilizadorJaAprovou(req)) { mostrarNotificacao('Você já aprovou esta requisição anteriormente!', 'warning'); return; }
+                    if (!podeAprovarStatus(req)) { mostrarNotificacao('Você não tem permissão para aprovar esta requisição no estado atual!', 'error'); return; }
+                    if (req.criadoPorEmail === usuarioAtual.email) { mostrarNotificacao('Não pode aprovar uma requisição que você mesmo criou!', 'error'); return; }
+                    
+                    adicionarAoHistorico(req, acao, coment || 'Aprovado sem comentários');
+                    await salvarHistoricoNoSharePoint(req);
+                    
+                    let novoStatus = '';
+                    let emailDestinatario = '';
+                    let proximoAprovador = '';
+                    
+                    if (req.status === 'em_validacao_rh') {
+                        novoStatus = 'em_validacao_financas';
+                        emailDestinatario = emailsAprovadores['Controlo de Gestão'];
+                        proximoAprovador = 'Controlo de Gestão';
+                        await enviarEmail(emailDestinatario, `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, proximoAprovador));
+                        mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo RH!`, 'success');
+                    } else if (req.status === 'em_validacao_financas') {
+                        novoStatus = 'em_validacao_director';
+                        emailDestinatario = emailsAprovadores['Director Geral'];
+                        proximoAprovador = 'Director Geral';
+                        await enviarEmail(emailDestinatario, `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, proximoAprovador));
+                        mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo CG!`, 'success');
+                    } else if (req.status === 'em_validacao_director') {
+                        novoStatus = 'aprovada';
+                        // Email para todos os envolvidos
+                        const todosEmails = [
+                            req.criadoPorEmail,
+                            emailsAprovadores['RH'],
+                            emailsAprovadores['Recrutador'],
+                            configuracoes.emailAdmin
+                        ].filter((v,i,a)=>a.indexOf(v)===i);
+                        for (const email of todosEmails) {
+                            await enviarEmail(email, `Requisição Aprovada - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment));
+                        }
+                        mostrarNotificacao(`Requisição ${req.codigo} APROVADA!`, 'success');
                     }
-                    mostrarNotificacao(`Requisição ${req.codigo} APROVADA!`, 'success');
+                    
+                    req.status = novoStatus;
+                    const atualizado = await atualizarRequisicaoNoSharePoint(req);
+                    if (!atualizado) throw new Error('Falha ao salvar no SharePoint');
+                    
+                } else if (acao === 'rejeitar') {
+                    adicionarAoHistorico(req, acao, coment);
+                    await salvarHistoricoNoSharePoint(req);
+                    req.status = 'rejeitada';
+                    await atualizarRequisicaoNoSharePoint(req);
+                    await enviarEmail(req.criadoPorEmail, `Requisição Rejeitada - ${req.codigo}`, templateRejeicao(req, usuarioAtual.nome, coment));
+                    mostrarNotificacao(`Requisição ${req.codigo} REJEITADA!`, 'warning');
                 }
-            } else if (acao === 'rejeitar') {
-                adicionarAoHistorico(req, acao, coment);
-                await salvarHistoricoNoSharePoint(req);
-                req.status = 'rejeitada';
-                await atualizarRequisicaoNoSharePoint(req);
-                await enviarEmail(req.criadoPorEmail, `Requisição Rejeitada - ${req.codigo}`, templateRejeicao(req, usuarioAtual.nome, coment));
-                mostrarNotificacao(`Requisição ${req.codigo} REJEITADA!`, 'warning');
+                
+                fecharModal('modalComentario');
+                await carregarRequisicoesDoSharePoint(); // recarrega todos os dados
+                filtrarRequisicoes();
+                carregarAprovacoes();
+                atualizarKPIs();
+                atualizarGraficos();
+                
+            } catch (error) {
+                console.error(error);
+                mostrarNotificacao('Erro ao processar ação: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Confirmar';
             }
-            fecharModal('modalComentario');
-            filtrarRequisicoes();
-            carregarAprovacoes();
-            atualizarKPIs();
         }
 
         async function processarDevolucao(req, comentario) {
-            if (!podeDevolverRequisicao(req)) { mostrarNotificacao('Não tem permissão para devolver esta requisição!', 'error'); fecharModal('modalComentario'); return; }
+            if (!podeDevolverRequisicao(req)) { mostrarNotificacao('Não tem permissão para devolver esta requisição!', 'error'); return; }
 
             let novoStatus = req.status;
             let destinatarioEmail = '';
@@ -3037,7 +3075,6 @@
                 destinatarioPerfil = 'Controlo de Gestão';
             } else {
                 mostrarNotificacao('Não é possível devolver esta requisição no estado atual', 'warning');
-                fecharModal('modalComentario');
                 return;
             }
 
@@ -3051,10 +3088,6 @@
             adicionarNotificacao('Requisição Devolvida', `A requisição ${req.codigo} foi devolvida para ${destinatarioPerfil} para correção.`, 'warning', req.id);
 
             mostrarNotificacao(`Requisição ${req.codigo} devolvida para ${destinatarioPerfil}!`, 'warning');
-            fecharModal('modalComentario');
-            filtrarRequisicoes();
-            carregarAprovacoes();
-            atualizarKPIs();
         }
 
         // ============================================
@@ -3130,10 +3163,10 @@
             }
 
             html += `<div style="margin-top:25px; padding-top:20px; border-top:2px solid var(--primary);"><h4 style="color: var(--primary-dark); margin-bottom:15px;"><i class="fas fa-hourglass-half"></i> Tempo por Fase de Aprovação</h4><div style="background:#f8f9fa; border-radius:8px; padding:15px;"><table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; padding:8px; background:var(--primary-light);">Fase</th><th style="text-align:left; padding:8px; background:var(--primary-light);">Status</th><th style="text-align:left; padding:8px; background:var(--primary-light);">Tempo</th><th style="text-align:left; padding:8px; background:var(--primary-light);">Data/Hora</th><th style="text-align:left; padding:8px; background:var(--primary-light);">Aprovador</th></tr></thead><tbody>`;
-            html += `<tr><td style="padding:8px; border-bottom:1px solid #e0e0e0;"><strong>📋 Fase RH</strong></td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.status === 'aprovado' ? '✅ Aprovada' : (tempos.tempoRH.status === 'pendente' ? '⏳ Pendente' : '❌ N/A')}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.dias !== null ? (tempos.tempoRH.dias + (tempos.tempoRH.dias === 1 ? ' dia' : ' dias')) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.data ? formatarDataHora(tempos.tempoRH.data) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.aprovador || '-'}</td></tr>`;
+            html += `</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;"><strong>📋 Fase RH</strong></td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.status === 'aprovado' ? '✅ Aprovada' : (tempos.tempoRH.status === 'pendente' ? '⏳ Pendente' : '❌ N/A')}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.dias !== null ? (tempos.tempoRH.dias + (tempos.tempoRH.dias === 1 ? ' dia' : ' dias')) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.data ? formatarDataHora(tempos.tempoRH.data) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.aprovador || '-'}</td></tr>`;
             html += `<tr><td style="padding:8px; border-bottom:1px solid #e0e0e0;"><strong>💰 Fase Controlo Gestão</strong></td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoCG.status === 'aprovado' ? '✅ Aprovada' : (tempos.tempoCG.status === 'pendente' ? '⏳ Pendente' : '❌ N/A')}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoCG.dias !== null ? (tempos.tempoCG.dias + (tempos.tempoCG.dias === 1 ? ' dia' : ' dias')) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoCG.data ? formatarDataHora(tempos.tempoCG.data) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoCG.aprovador || '-'}</td></tr>`;
             html += `<tr><td style="padding:8px; border-bottom:1px solid #e0e0e0;"><strong>👔 Fase Director Geral</strong></td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoDir.status === 'aprovado' ? '✅ Aprovada' : (tempos.tempoDir.status === 'pendente' ? '⏳ Pendente' : '❌ N/A')}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoDir.dias !== null ? (tempos.tempoDir.dias + (tempos.tempoDir.dias === 1 ? ' dia' : ' dias')) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoDir.data ? formatarDataHora(tempos.tempoDir.data) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoDir.aprovador || '-'}</td></tr>`;
-            html += `</tbody></table><div style="margin-top:15px; padding:12px; background:var(--primary-light); border-radius:8px; text-align:center;"><strong><i class="fas fa-hourglass-end"></i> Tempo Total:</strong> ${tempos.tempoTotal.dias !== null ? (tempos.tempoTotal.dias + (tempos.tempoTotal.dias === 1 ? ' dia' : ' dias')) : '-'} ${tempos.tempoTotal.status === 'aprovada' ? '(Processo concluído)' : (tempos.tempoTotal.status === 'rejeitada' ? '(Processo rejeitado)' : '(Em andamento)')}</div></div></div>`;
+            html += `</tbody></td><div style="margin-top:15px; padding:12px; background:var(--primary-light); border-radius:8px; text-align:center;"><strong><i class="fas fa-hourglass-end"></i> Tempo Total:</strong> ${tempos.tempoTotal.dias !== null ? (tempos.tempoTotal.dias + (tempos.tempoTotal.dias === 1 ? ' dia' : ' dias')) : '-'} ${tempos.tempoTotal.status === 'aprovada' ? '(Processo concluído)' : (tempos.tempoTotal.status === 'rejeitada' ? '(Processo rejeitado)' : '(Em andamento)')}</div></div></div>`;
 
             const historico = req.historicoComentarios || [];
             if (historico.length > 0) {
@@ -3167,15 +3200,21 @@
         function carregarAprovacoes() {
             const tbody = document.getElementById('corpoAprovacoes');
             if (!tbody) return;
-            if (!isAprovador()) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</td></tr>'; return; }
+            if (!isAprovador()) { 
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</span>NonNullable</span>'; 
+                return; 
+            }
             let pendentes = [];
             if (usuarioAtual?.perfil === 'Administrador') pendentes = requisicoes.filter(r => ['em_validacao_rh', 'em_validacao_financas', 'em_validacao_director'].includes(r.status));
             else if (usuarioAtual?.perfil === 'RH') pendentes = requisicoes.filter(r => r.status === 'em_validacao_rh');
             else if (usuarioAtual?.perfil === 'Controlo de Gestão') pendentes = requisicoes.filter(r => r.status === 'em_validacao_financas');
             else if (usuarioAtual?.perfil === 'Director Geral') pendentes = requisicoes.filter(r => r.status === 'em_validacao_director');
             pendentes = pendentes.filter(r => !utilizadorJaAprovou(r) && r.criadoPorEmail !== usuarioAtual.email);
-            if (pendentes.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente</td></tr>'; return; }
-            tbody.innerHTML = pendentes.map(r => `<tr onclick="visualizarRequisicao('${r.id}')"><td>${r.codigo}${r.ficheiros && r.ficheiros.length > 0 ? ' 📎' : ''}${podeEditarRequisicao(r) ? '<span class="edit-badge" data-tooltip="Pode editar esta requisição"></span>' : ''}</td><td onclick="visualizarRequisicao('${r.id}')">${r.funcao}</td><td onclick="visualizarRequisicao('${r.id}')">${r.direcao}</td><td onclick="visualizarRequisicao('${r.id}')"><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></td><td onclick="visualizarRequisicao('${r.id}')">${formatarData(r.dataCriacao)}</td><td><div class="action-buttons">${getBotoesAcao(r)}</div></td></tr>`).join('');
+            if (pendentes.length === 0) { 
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente. Consulte a aba "Requisições" para ver outros estados.</span>NonNullable</span>'; 
+                return; 
+            }
+            tbody.innerHTML = pendentes.map(r => `<tr onclick="visualizarRequisicao('${r.id}')"><td>${r.codigo}${r.ficheiros && r.ficheiros.length > 0 ? ' 📎' : ''}${podeEditarRequisicao(r) ? '<span class="edit-badge" data-tooltip="Pode editar esta requisição"></span>' : ''}</span></td><td onclick="visualizarRequisicao('${r.id}')">${r.funcao}</span></td><td onclick="visualizarRequisicao('${r.id}')">${r.direcao}</span></td><td onclick="visualizarRequisicao('${r.id}')"><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></span></td><td onclick="visualizarRequisicao('${r.id}')">${formatarData(r.dataCriacao)}</span></td><td><div class="action-buttons">${getBotoesAcao(r)}</div></span></tr>`).join('');
         }
 
         function carregarDashboard() {
@@ -3444,7 +3483,7 @@
                 atualizarGraficos();
                 mostrarNotificacao(`Requisição ${novoCodigo} criada com sucesso!`, 'success');
             } else {
-                mostrarNotificacao(`Erro ao salvar no SharePoint. Verifique o console (F12).`, 'error');
+                mostrarNotificacao(`Erro ao salvar no SharePoint. Verifique se a lista "${SHAREPOINT_CONFIG.listName}" e a coluna "Ficheiros" existem.`, 'error');
             }
             hideLoading();
         }
