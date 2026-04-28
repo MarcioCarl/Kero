@@ -658,15 +658,9 @@
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 20px;
             margin-bottom: 20px;
-        }
-
-        @media (max-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
         }
 
         .dashboard-card {
@@ -674,6 +668,98 @@
             padding: 20px;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow-sm);
+        }
+
+        .tempos-fases-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .fase-card {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            border-left: 4px solid;
+            transition: transform 0.3s ease;
+        }
+
+        .fase-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .fase-card.rh { border-left-color: #4CAF50; }
+        .fase-card.cg { border-left-color: #FF9800; }
+        .fase-card.dg { border-left-color: #f44336; }
+        .fase-card.recrutamento { border-left-color: #2196F3; }
+
+        .fase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .fase-titulo {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .fase-tempo {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .fase-detalhes {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .detalhe-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .detalhe-label {
+            color: var(--gray-500);
+            font-size: 13px;
+        }
+
+        .detalhe-valor {
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .tempo-positivo {
+            color: #4CAF50;
+        }
+
+        .tempo-negativo {
+            color: #f44336;
+        }
+
+        .grafico-barra {
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .grafico-barra-fill {
+            background: var(--primary);
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-size: 12px;
+            transition: width 0.5s ease;
         }
 
         .activity-list {
@@ -1544,8 +1630,14 @@
 
                 <div id="dashboardSection">
                     <div class="dashboard-grid">
-                        <div class="dashboard-card"><h3><i class="fas fa-history"></i> Atividades Recentes</h3><div class="activity-list" id="atividadesRecentes"></div></div>
-                        <div class="dashboard-card"><h3><i class="fas fa-chart-pie"></i> Status</h3><div class="chart-container"><canvas id="statusChart"></canvas></div></div>
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-clock"></i> Dashboard de Tempos das Requisições</h3>
+                            <div id="temposDashboard"></div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-chart-pie"></i> Status das Requisições</h3>
+                            <div class="chart-container"><canvas id="statusChart"></canvas></div>
+                        </div>
                     </div>
                 </div>
 
@@ -1664,7 +1756,7 @@
         </div>
     </div>
 
-    <!-- MODAIS -->
+    <!-- MODAIS (mesmos do original) -->
     <div class="modal" id="modalTipo">
         <div class="modal-content">
             <div class="modal-header"><h2>Selecionar Tipo</h2><span class="close-modal" onclick="fecharModal('modalTipo')">&times;</span></div>
@@ -1819,10 +1911,9 @@
             'aleixo.francisco@accordgrouplda.com': 'Recrutador'
         };
 
-        // Todos os perfis que podem ver todas as requisições (inclui aprovadores e recrutador)
         const PERFIS_QUE_VEEM_TUDO = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral', 'Recrutador'];
         const PERFIS_QUE_APROVAM = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral'];
-        const PERFIS_QUE_PODEM_CRIAR = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral', 'Colaborador', 'Recrutador'];
+        const PERFIS_QUE_PODEM_CRIAR = ['Administrador', 'RH', 'Controlo de Gestão', 'Director Geral', 'Recrutador'];
 
         const emailsAprovadores = {
             'RH': 'mario.arao@accordgrouplda.com',
@@ -1874,6 +1965,7 @@
         };
         let moduloAtual = null;
         let requisicaoVisualizarAtual = null;
+
         // ============================================
         // FUNÇÕES UTILITÁRIAS
         // ============================================
@@ -1894,6 +1986,19 @@
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function formatarTempo(ms) {
+            if (!ms && ms !== 0) return 'N/A';
+            const segundos = Math.floor(ms / 1000);
+            const minutos = Math.floor(segundos / 60);
+            const horas = Math.floor(minutos / 60);
+            const dias = Math.floor(horas / 24);
+            
+            if (dias > 0) return `${dias} dia(s) e ${horas % 24} hora(s)`;
+            if (horas > 0) return `${horas} hora(s) e ${minutos % 60} minuto(s)`;
+            if (minutos > 0) return `${minutos} minuto(s)`;
+            return `${segundos} segundo(s)`;
         }
 
         function getStatusText(s) {
@@ -1930,7 +2035,7 @@
             const proximo = {
                 'em_validacao_rh': 'em_validacao_financas',
                 'em_validacao_financas': 'em_validacao_director',
-                'em_validacao_director': 'aprovada'
+                'em_validacao_director': 'em_recrutamento'  // ALTERADO: Agora vai direto para recrutamento
             };
             return proximo[statusAtual] || statusAtual;
         }
@@ -1943,15 +2048,16 @@
             return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
 
+        function calcularTempoEmMilissegundos(dataInicio, dataFim) {
+            if (!dataInicio) return null;
+            const inicio = new Date(dataInicio);
+            const fim = dataFim ? new Date(dataFim) : new Date();
+            return Math.abs(fim - inicio);
+        }
+
         function calcularTempoRecrutamento(req) {
             if (!req.dataInicioRecrutamento) return null;
-            const inicio = new Date(req.dataInicioRecrutamento);
-            const fim = req.dataFimRecrutamento ? new Date(req.dataFimRecrutamento) : new Date();
-            const diffMs = Math.abs(fim - inicio);
-            const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-            const diffHoras = Math.floor((diffMs % (86400000)) / 3600000);
-            if (diffDias > 0) return `${diffDias} dia(s) e ${diffHoras} hora(s)`;
-            return `${diffHoras} hora(s)`;
+            return calcularTempoEmMilissegundos(req.dataInicioRecrutamento, req.dataFimRecrutamento);
         }
 
         function getStatusAprovacaoPorPerfil(req, perfil) {
@@ -1959,68 +2065,53 @@
             return req.historicoComentarios.find(h => h.acao === 'aprovar' && h.perfil === perfil);
         }
 
-        function calcularTempoPorFase(req) {
-            const resultado = {
-                tempoRH: { status: 'pendente', dias: null, data: null, aprovador: null },
-                tempoCG: { status: 'pendente', dias: null, data: null, aprovador: null },
-                tempoDir: { status: 'pendente', dias: null, data: null, aprovador: null },
-                tempoTotal: { dias: null, status: 'pendente' }
-            };
-
+        function calcularTempoPorFaseDetalhado(req) {
             const aprovRH = getStatusAprovacaoPorPerfil(req, 'RH');
             const aprovCG = getStatusAprovacaoPorPerfil(req, 'Controlo de Gestão');
             const aprovDir = getStatusAprovacaoPorPerfil(req, 'Director Geral');
-
+            
+            let tempoRH = null, tempoCG = null, tempoDir = null, tempoRecrutamento = null;
+            
+            // Tempo na fase RH
             if (aprovRH) {
-                resultado.tempoRH.status = 'aprovado';
-                resultado.tempoRH.dias = calcularDiasEntreDatas(req.dataCriacao, aprovRH.data);
-                resultado.tempoRH.data = aprovRH.data;
-                resultado.tempoRH.aprovador = aprovRH.usuario;
+                tempoRH = calcularTempoEmMilissegundos(req.dataCriacao, aprovRH.data);
+            } else if (req.status === 'em_validacao_rh' || 
+                       (req.status !== 'em_validacao_rh' && !aprovRH && (aprovCG || aprovDir))) {
+                tempoRH = calcularTempoEmMilissegundos(req.dataCriacao, null);
             }
-
+            
+            // Tempo na fase CG
             if (aprovCG && aprovRH) {
-                resultado.tempoCG.status = 'aprovado';
-                resultado.tempoCG.dias = calcularDiasEntreDatas(aprovRH.data, aprovCG.data);
-                resultado.tempoCG.data = aprovCG.data;
-                resultado.tempoCG.aprovador = aprovCG.usuario;
+                tempoCG = calcularTempoEmMilissegundos(aprovRH.data, aprovCG.data);
             } else if (aprovCG && !aprovRH) {
-                resultado.tempoCG.status = 'aprovado';
-                resultado.tempoCG.dias = calcularDiasEntreDatas(req.dataCriacao, aprovCG.data);
-                resultado.tempoCG.data = aprovCG.data;
-                resultado.tempoCG.aprovador = aprovCG.usuario;
+                tempoCG = calcularTempoEmMilissegundos(req.dataCriacao, aprovCG.data);
+            } else if ((req.status === 'em_validacao_financas' || req.status === 'em_validacao_director' || req.status === 'em_recrutamento') && aprovRH && !aprovCG) {
+                tempoCG = calcularTempoEmMilissegundos(aprovRH.data, null);
             }
-
+            
+            // Tempo na fase Director
             if (aprovDir && aprovCG) {
-                resultado.tempoDir.status = 'aprovado';
-                resultado.tempoDir.dias = calcularDiasEntreDatas(aprovCG.data, aprovDir.data);
-                resultado.tempoDir.data = aprovDir.data;
-                resultado.tempoDir.aprovador = aprovDir.usuario;
-            } else if (aprovDir && !aprovCG) {
-                const refData = aprovRH ? aprovRH.data : req.dataCriacao;
-                resultado.tempoDir.status = 'aprovado';
-                resultado.tempoDir.dias = calcularDiasEntreDatas(refData, aprovDir.data);
-                resultado.tempoDir.data = aprovDir.data;
-                resultado.tempoDir.aprovador = aprovDir.usuario;
+                tempoDir = calcularTempoEmMilissegundos(aprovCG.data, aprovDir.data);
+            } else if (aprovDir && !aprovCG && aprovRH) {
+                tempoDir = calcularTempoEmMilissegundos(aprovRH.data, aprovDir.data);
+            } else if (aprovDir && !aprovCG && !aprovRH) {
+                tempoDir = calcularTempoEmMilissegundos(req.dataCriacao, aprovDir.data);
+            } else if (req.status === 'em_validacao_director' && aprovCG && !aprovDir) {
+                tempoDir = calcularTempoEmMilissegundos(aprovCG.data, null);
+            } else if (req.status === 'em_validacao_director' && !aprovCG && aprovRH) {
+                tempoDir = calcularTempoEmMilissegundos(aprovRH.data, null);
             }
-
-            if (req.status === 'aprovada') {
-                const dataFinal = aprovDir ? aprovDir.data : (aprovCG ? aprovCG.data : (aprovRH ? aprovRH.data : null));
-                if (dataFinal) {
-                    resultado.tempoTotal.dias = calcularDiasEntreDatas(req.dataCriacao, dataFinal);
-                    resultado.tempoTotal.status = 'aprovada';
+            
+            // Tempo em recrutamento
+            if (req.dataInicioRecrutamento) {
+                if (req.dataFimRecrutamento) {
+                    tempoRecrutamento = calcularTempoEmMilissegundos(req.dataInicioRecrutamento, req.dataFimRecrutamento);
+                } else if (req.status === 'em_recrutamento') {
+                    tempoRecrutamento = calcularTempoEmMilissegundos(req.dataInicioRecrutamento, null);
                 }
-            } else if (req.status === 'rejeitada') {
-                const rejeicao = req.historicoComentarios?.find(h => h.acao === 'rejeitar');
-                if (rejeicao) {
-                    resultado.tempoTotal.dias = calcularDiasEntreDatas(req.dataCriacao, rejeicao.data);
-                    resultado.tempoTotal.status = 'rejeitada';
-                }
-            } else {
-                resultado.tempoTotal.dias = calcularDiasEntreDatas(req.dataCriacao, new Date().toISOString());
-                resultado.tempoTotal.status = 'pendente';
             }
-
-            return resultado;
+            
+            return { tempoRH, tempoCG, tempoDir, tempoRecrutamento };
         }
 
         // ============================================
@@ -2051,14 +2142,9 @@
             return PERFIS_QUE_APROVAM.includes(usuarioAtual.perfil);
         }
 
-        function podeIniciarRecrutamento(req) {
-            if (!usuarioAtual) return false;
-            if (req.status !== 'aprovada') return false;
-            return (usuarioAtual.perfil === 'Recrutador' || usuarioAtual.perfil === 'Administrador');
-        }
-
         function podeFinalizarRecrutamento(req) {
             if (!usuarioAtual) return false;
+            // Apenas o Recrutador ou Administrador pode finalizar
             if (req.status !== 'em_recrutamento') return false;
             return (usuarioAtual.perfil === 'Recrutador' || usuarioAtual.perfil === 'Administrador');
         }
@@ -2071,8 +2157,9 @@
 
         function podeVerRequisicao(req) {
             if (!usuarioAtual) return false;
-            // Perfis com acesso total veem tudo
+            // Aprovadores veem requisições em recrutamento também
             if (PERFIS_QUE_VEEM_TUDO.includes(usuarioAtual.perfil)) return true;
+            if (isAprovador() && req.status === 'em_recrutamento') return true;
             // Utilizadores normais veem apenas as suas próprias requisições
             return req.criadoPorEmail === usuarioAtual.email;
         }
@@ -2080,6 +2167,10 @@
         function filtrarRequisicoesVisiveis(lista) {
             if (!usuarioAtual) return [];
             if (PERFIS_QUE_VEEM_TUDO.includes(usuarioAtual.perfil)) return lista;
+            // Aprovadores veem todas em recrutamento + suas próprias
+            if (isAprovador()) {
+                return lista.filter(req => req.criadoPorEmail === usuarioAtual.email || req.status === 'em_recrutamento');
+            }
             return lista.filter(req => req.criadoPorEmail === usuarioAtual.email);
         }
 
@@ -2208,7 +2299,7 @@
         });
 
         // ============================================
-        // SERVIÇO DE EMAIL (com prevenção de duplicados)
+        // SERVIÇO DE EMAIL
         // ============================================
         async function enviarEmail(destinatario, assunto, corpoHtml) {
             if (!configuracoes.emailNotif) return false;
@@ -2235,7 +2326,6 @@
                     body: JSON.stringify(email)
                 });
                 const sucesso = response.ok;
-                // Guardar no histórico (sem exibir painel)
                 historicoEmails.unshift({ id: Date.now(), destinatario, assunto, data: new Date().toISOString(), status: sucesso ? 'enviado' : 'erro' });
                 if (historicoEmails.length > 50) historicoEmails.pop();
                 return sucesso;
@@ -2250,7 +2340,6 @@
                 'dircg@accordgrouplda.com',
                 'paulo.silva@accordgrouplda.com'
             ];
-            // Remove duplicados e excluídos
             const destinatarios = [...new Set(emailsBase.filter(e => !emailsExcluir.includes(e)))];
             for (const email of destinatarios) {
                 await enviarEmail(email, assunto, corpoHtml);
@@ -2296,8 +2385,8 @@
             return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #4CAF50;">Nova Requisição de Vaga</h2><p><strong>Código:</strong> ${req.codigo}</p><p><strong>Função:</strong> ${req.funcao}</p><p><strong>Direção:</strong> ${req.direcao}</p><p><strong>Quantidade:</strong> ${req.quantidade}</p><p><strong>Data Início:</strong> ${formatarData(req.dataInicio)}</p><p><strong>Solicitante:</strong> ${req.criadoPor}</p><hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
         }
 
-        function templateAprovacao(req, aprovador, comentario, proximoAprovador) {
-            return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #4CAF50;">Requisição Aprovada</h2><p><strong>Código:</strong> ${req.codigo}</p><p><strong>Função:</strong> ${req.funcao}</p><p><strong>Aprovado por:</strong> ${aprovador}</p><p><strong>Comentário:</strong> ${comentario || 'Sem comentários'}</p>${proximoAprovador ? `<p><strong>Próximo Aprovador:</strong> ${proximoAprovador}</p>` : ''}<hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
+        function templateAprovacao(req, aprovador, comentario, proximoStatus) {
+            return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #4CAF50;">Requisição Aprovada</h2><p><strong>Código:</strong> ${req.codigo}</p><p><strong>Função:</strong> ${req.funcao}</p><p><strong>Aprovado por:</strong> ${aprovador}</p><p><strong>Comentário:</strong> ${comentario || 'Sem comentários'}</p><p><strong>Próximo status:</strong> ${proximoStatus === 'em_recrutamento' ? 'Recrutamento Iniciado' : getStatusText(proximoStatus)}</p><hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
         }
 
         function templateRejeicao(req, rejeitadoPor, comentario) {
@@ -2305,15 +2394,11 @@
         }
 
         function templateAprovacaoFinal(req, aprovador, comentario) {
-            return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #4CAF50;">Requisição Aprovada com Sucesso!</h2><p><strong>Código:</strong> ${req.codigo}</p><p><strong>Função:</strong> ${req.funcao}</p><p><strong>Direção:</strong> ${req.direcao}</p><p><strong>Aprovado por:</strong> ${aprovador}</p><p><strong>Comentário:</strong> ${comentario || 'Sem comentários'}</p><hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
-        }
-
-        function templateInicioRecrutamento(req) {
-            return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #2196F3;">Recrutamento Iniciado</h2><p><strong>Requisição:</strong> ${req.codigo} - ${req.funcao}</p><p><strong>Iniciado por:</strong> ${usuarioAtual.nome}</p><p><strong>Data de início:</strong> ${formatarDataHora(new Date().toISOString())}</p><p>O processo de recrutamento para esta vaga foi iniciado.</p><hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
+            return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #4CAF50;">Requisição Aprovada - Recrutamento Iniciado!</h2><p><strong>Código:</strong> ${req.codigo}</p><p><strong>Função:</strong> ${req.funcao}</p><p><strong>Direção:</strong> ${req.direcao}</p><p><strong>Aprovado por:</strong> ${aprovador}</p><p><strong>Comentário:</strong> ${comentario || 'Sem comentários'}</p><p><strong>Status:</strong> Recrutamento Iniciado</p><p>O processo de recrutamento foi automaticamente iniciado. O recrutador responsável irá dar seguimento.</p><hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
         }
 
         function templateFimRecrutamento(req) {
-            return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #2196F3;">Recrutamento Concluído</h2><p><strong>Requisição:</strong> ${req.codigo} - ${req.funcao}</p><p><strong>Concluído por:</strong> ${usuarioAtual.nome}</p><p><strong>Período de recrutamento:</strong> ${calcularTempoRecrutamento(req)}</p><p>O recrutamento foi finalizado. Aguardamos a confirmação do solicitante.</p><hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
+            return `<div style="font-family: Arial, sans-serif; max-width: 600px;"><h2 style="color: #2196F3;">Recrutamento Concluído</h2><p><strong>Requisição:</strong> ${req.codigo} - ${req.funcao}</p><p><strong>Concluído por:</strong> ${usuarioAtual.nome}</p><p><strong>Período de recrutamento:</strong> ${formatarTempo(calcularTempoRecrutamento(req))}</p><p>O recrutamento foi finalizado. Aguardamos a confirmação do solicitante.</p><hr><p style="color: #666; font-size: 12px;">Este é um email automático do Sistema Kero SIR.</p></div>`;
         }
 
         function templateConfirmacaoAtendimento(req) {
@@ -2595,7 +2680,7 @@
                     } else { requisicoes = []; }
                 } else { requisicoes = []; }
             } catch (error) { console.error('Erro ao carregar do SharePoint:', error); requisicoes = []; }
-            finally { hideLoading(); filtrarRequisicoes(); carregarAprovacoes(); atualizarKPIs(); atualizarGraficos(); }
+            finally { hideLoading(); filtrarRequisicoes(); carregarAprovacoes(); atualizarKPIs(); atualizarGraficos(); carregarDashboardTempos(); }
         }
 
         async function salvarRequisicaoNoSharePoint(req) {
@@ -2649,50 +2734,26 @@
         // ============================================
         // NOVAS FUNÇÕES DE RECRUTAMENTO E CONFIRMAÇÃO
         // ============================================
-        async function iniciarRecrutamento(id) {
-            const req = requisicoes.find(r => r.id === id);
-            if (!req) { mostrarNotificacao('Requisição não encontrada', 'error'); return; }
-            if (!podeIniciarRecrutamento(req)) { mostrarNotificacao('Não tem permissão para iniciar o recrutamento desta requisição', 'error'); return; }
-            showLoading();
-            try {
-                req.status = 'em_recrutamento';
-                req.dataInicioRecrutamento = new Date().toISOString();
-                adicionarAoHistorico(req, 'inicio_recrutamento', `Recrutamento iniciado por ${usuarioAtual.nome}`);
-                await atualizarRequisicaoNoSharePoint(req);
-                await salvarHistoricoNoSharePoint(req);
-                await enviarEmailParaTodos(`Recrutamento Iniciado - ${req.codigo}`, templateInicioRecrutamento(req));
-                await enviarNotificacaoTeams(`🚀 Recrutamento Iniciado: ${req.codigo}`, `O recrutamento para ${req.funcao} foi iniciado por ${usuarioAtual.nome}.`, '2196F3');
-                adicionarNotificacao('Recrutamento Iniciado', `Iniciado o recrutamento para ${req.codigo} - ${req.funcao}`, 'info', req.id);
-                mostrarNotificacao(`Recrutamento da requisição ${req.codigo} iniciado!`, 'success');
-                filtrarRequisicoes();
-                carregarAprovacoes();
-                atualizarKPIs();
-                atualizarGraficos();
-            } catch (error) {
-                console.error(error);
-                mostrarNotificacao('Erro ao iniciar recrutamento', 'error');
-            } finally { hideLoading(); }
-        }
-
         async function finalizarRecrutamento(id) {
             const req = requisicoes.find(r => r.id === id);
             if (!req) { mostrarNotificacao('Requisição não encontrada', 'error'); return; }
-            if (!podeFinalizarRecrutamento(req)) { mostrarNotificacao('Não tem permissão para finalizar o recrutamento desta requisição', 'error'); return; }
+            if (!podeFinalizarRecrutamento(req)) { mostrarNotificacao('Apenas o Recrutador pode finalizar o recrutamento', 'error'); return; }
             showLoading();
             try {
                 req.status = 'aguardando_confirmacao_solicitante';
                 req.dataFimRecrutamento = new Date().toISOString();
-                adicionarAoHistorico(req, 'fim_recrutamento', `Recrutamento concluído por ${usuarioAtual.nome}. Tempo total: ${calcularTempoRecrutamento(req)}`);
+                adicionarAoHistorico(req, 'fim_recrutamento', `Recrutamento concluído por ${usuarioAtual.nome}. Tempo total: ${formatarTempo(calcularTempoRecrutamento(req))}`);
                 await atualizarRequisicaoNoSharePoint(req);
                 await salvarHistoricoNoSharePoint(req);
-                await enviarEmailParaTodos(`Recrutamento Concluído - ${req.codigo}`, templateFimRecrutamento(req));
+                await enviarEmail(req.criadoPorEmail, `Recrutamento Concluído - ${req.codigo}`, templateFimRecrutamento(req));
                 await enviarNotificacaoTeams(`✅ Recrutamento Concluído: ${req.codigo}`, `O recrutamento para ${req.funcao} foi finalizado. Aguardando confirmação do solicitante.`, '4CAF50');
                 adicionarNotificacao('Recrutamento Concluído', `Recrutamento finalizado para ${req.codigo} - ${req.funcao}. Aguardando confirmação do solicitante.`, 'success', req.id);
-                mostrarNotificacao(`Recrutamento da requisição ${req.codigo} concluído! Notificação enviada ao solicitante.`, 'success');
+                mostrarNotificacao(`Recrutamento da requisição ${req.codigo} concluído!`, 'success');
                 filtrarRequisicoes();
                 carregarAprovacoes();
                 atualizarKPIs();
                 atualizarGraficos();
+                carregarDashboardTempos();
             } catch (error) {
                 console.error(error);
                 mostrarNotificacao('Erro ao finalizar recrutamento', 'error');
@@ -2717,10 +2778,169 @@
                 carregarAprovacoes();
                 atualizarKPIs();
                 atualizarGraficos();
+                carregarDashboardTempos();
             } catch (error) {
                 console.error(error);
                 mostrarNotificacao('Erro ao confirmar atendimento', 'error');
             } finally { hideLoading(); }
+        }
+
+        // ============================================
+        // DASHBOARD DE TEMPOS
+        // ============================================
+        function carregarDashboardTempos() {
+            const container = document.getElementById('temposDashboard');
+            if (!container) return;
+            
+            const requisicoesVisiveis = filtrarRequisicoesVisiveis(requisicoes);
+            
+            // Inicializar acumuladores
+            let totalTempoRH = 0, totalTempoCG = 0, totalTempoDir = 0, totalTempoRecrutamento = 0;
+            let countRH = 0, countCG = 0, countDir = 0, countRecrutamento = 0;
+            let requisicoesEmAprovacaoRH = 0, requisicoesEmAprovacaoCG = 0, requisicoesEmAprovacaoDir = 0, requisicoesEmRecrutamento = 0;
+            
+            requisicoesVisiveis.forEach(req => {
+                const tempos = calcularTempoPorFaseDetalhado(req);
+                
+                if (tempos.tempoRH !== null) {
+                    totalTempoRH += tempos.tempoRH;
+                    countRH++;
+                }
+                if (tempos.tempoCG !== null) {
+                    totalTempoCG += tempos.tempoCG;
+                    countCG++;
+                }
+                if (tempos.tempoDir !== null) {
+                    totalTempoDir += tempos.tempoDir;
+                    countDir++;
+                }
+                if (tempos.tempoRecrutamento !== null) {
+                    totalTempoRecrutamento += tempos.tempoRecrutamento;
+                    countRecrutamento++;
+                }
+                
+                // Contar requisições em cada fase
+                if (req.status === 'em_validacao_rh') requisicoesEmAprovacaoRH++;
+                if (req.status === 'em_validacao_financas') requisicoesEmAprovacaoCG++;
+                if (req.status === 'em_validacao_director') requisicoesEmAprovacaoDir++;
+                if (req.status === 'em_recrutamento') requisicoesEmRecrutamento++;
+            });
+            
+            const mediaRH = countRH > 0 ? totalTempoRH / countRH : 0;
+            const mediaCG = countCG > 0 ? totalTempoCG / countCG : 0;
+            const mediaDir = countDir > 0 ? totalTempoDir / countDir : 0;
+            const mediaRecrutamento = countRecrutamento > 0 ? totalTempoRecrutamento / countRecrutamento : 0;
+            
+            // Encontrar máximo para gráfico de barras
+            const maxTempo = Math.max(mediaRH, mediaCG, mediaDir, mediaRecrutamento, 1);
+            
+            container.innerHTML = `
+                <div class="tempos-fases-container">
+                    <div class="fase-card rh">
+                        <div class="fase-header">
+                            <div class="fase-titulo"><i class="fas fa-user-tie"></i> Fase RH</div>
+                            <div class="fase-tempo ${mediaRH > 0 ? 'tempo-positivo' : ''}">${formatarTempo(mediaRH)}</div>
+                        </div>
+                        <div class="grafico-barra">
+                            <div class="grafico-barra-fill" style="width: ${(mediaRH / maxTempo) * 100}%; background: #4CAF50;">
+                                ${mediaRH > 0 ? formatarTempo(mediaRH) : ''}
+                            </div>
+                        </div>
+                        <div class="fase-detalhes">
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Tempo médio:</span>
+                                <span class="detalhe-valor">${formatarTempo(mediaRH)}</span>
+                            </div>
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Total analisado:</span>
+                                <span class="detalhe-valor">${countRH} requisições</span>
+                            </div>
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Em aprovação agora:</span>
+                                <span class="detalhe-valor">${requisicoesEmAprovacaoRH} pendentes</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="fase-card cg">
+                        <div class="fase-header">
+                            <div class="fase-titulo"><i class="fas fa-chart-line"></i> Fase Controlo Gestão</div>
+                            <div class="fase-tempo ${mediaCG > 0 ? 'tempo-positivo' : ''}">${formatarTempo(mediaCG)}</div>
+                        </div>
+                        <div class="grafico-barra">
+                            <div class="grafico-barra-fill" style="width: ${(mediaCG / maxTempo) * 100}%; background: #FF9800;">
+                                ${mediaCG > 0 ? formatarTempo(mediaCG) : ''}
+                            </div>
+                        </div>
+                        <div class="fase-detalhes">
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Tempo médio:</span>
+                                <span class="detalhe-valor">${formatarTempo(mediaCG)}</span>
+                            </div>
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Total analisado:</span>
+                                <span class="detalhe-valor">${countCG} requisições</span>
+                            </div>
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Em aprovação agora:</span>
+                                <span class="detalhe-valor">${requisicoesEmAprovacaoCG} pendentes</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="fase-card dg">
+                        <div class="fase-header">
+                            <div class="fase-titulo"><i class="fas fa-user-tie"></i> Fase Director Geral</div>
+                            <div class="fase-tempo ${mediaDir > 0 ? 'tempo-positivo' : ''}">${formatarTempo(mediaDir)}</div>
+                        </div>
+                        <div class="grafico-barra">
+                            <div class="grafico-barra-fill" style="width: ${(mediaDir / maxTempo) * 100}%; background: #f44336;">
+                                ${mediaDir > 0 ? formatarTempo(mediaDir) : ''}
+                            </div>
+                        </div>
+                        <div class="fase-detalhes">
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Tempo médio:</span>
+                                <span class="detalhe-valor">${formatarTempo(mediaDir)}</span>
+                            </div>
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Total analisado:</span>
+                                <span class="detalhe-valor">${countDir} requisições</span>
+                            </div>
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Em aprovação agora:</span>
+                                <span class="detalhe-valor">${requisicoesEmAprovacaoDir} pendentes</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="fase-card recrutamento">
+                        <div class="fase-header">
+                            <div class="fase-titulo"><i class="fas fa-user-graduate"></i> Fase Recrutamento</div>
+                            <div class="fase-tempo ${mediaRecrutamento > 0 ? 'tempo-positivo' : ''}">${formatarTempo(mediaRecrutamento)}</div>
+                        </div>
+                        <div class="grafico-barra">
+                            <div class="grafico-barra-fill" style="width: ${(mediaRecrutamento / maxTempo) * 100}%; background: #2196F3;">
+                                ${mediaRecrutamento > 0 ? formatarTempo(mediaRecrutamento) : ''}
+                            </div>
+                        </div>
+                        <div class="fase-detalhes">
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Tempo médio:</span>
+                                <span class="detalhe-valor">${formatarTempo(mediaRecrutamento)}</span>
+                            </div>
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Total analisado:</span>
+                                <span class="detalhe-valor">${countRecrutamento} requisições</span>
+                            </div>
+                            <div class="detalhe-item">
+                                <span class="detalhe-label">Em recrutamento agora:</span>
+                                <span class="detalhe-valor">${requisicoesEmRecrutamento} ativas</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // ============================================
@@ -2736,7 +2956,7 @@
                 document.getElementById('systemTitle').textContent = 'Kero Recrutamento';
                 inicializarDirecoes();
                 carregarRequisicoesDoSharePoint();
-                carregarDashboard();
+                carregarDashboardTempos();
                 carregarDirecoes();
                 carregarConfiguracoes();
                 inicializarGraficos();
@@ -2761,7 +2981,7 @@
             document.getElementById(aba + 'Section').style.display = 'block';
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             if (elem) elem.classList.add('active');
-            if (aba === 'dashboard') { carregarDashboard(); atualizarKPIs(); atualizarGraficos(); }
+            if (aba === 'dashboard') { carregarDashboardTempos(); atualizarKPIs(); atualizarGraficos(); }
             if (aba === 'aprovacoes') carregarAprovacoes();
         }
 
@@ -2836,12 +3056,20 @@
         function carregarRequisicoes() {
             const tbody = document.getElementById('corpoTabela');
             if (!tbody) return;
-            if (requisicoesFiltradas.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma requisição encontrada</span>NonNullable</span>'; return; }
+            if (requisicoesFiltradas.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma requisição encontrada</td></tr>'; return; }
             const inicio = (estado.paginaAtual - 1) * estado.itensPorPagina;
             const itens = requisicoesFiltradas.slice(inicio, inicio + estado.itensPorPagina);
             tbody.innerHTML = itens.map(r => {
                 const temEdicao = r.historicoComentarios && r.historicoComentarios.some(h => h.acao === 'edicao');
-                return `<tr onclick="visualizarRequisicao('${r.id}')"><td>${r.codigo} ${r.ficheiros && r.ficheiros.length > 0 ? '<i class="fas fa-paperclip" style="color: var(--primary); margin-left: 5px;"></i>' : ''} ${temEdicao ? '<span class="edit-badge" data-tooltip="Esta requisição foi editada"></span>' : ''}</span></td><td onclick="visualizarRequisicao('${r.id}')">${r.funcao}</span></td><td onclick="visualizarRequisicao('${r.id}')">${r.direcao}</span></td><td onclick="visualizarRequisicao('${r.id}')"><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></span></td><td onclick="visualizarRequisicao('${r.id}')">${getTipoBadge(r.tipo)}</span></td><td onclick="visualizarRequisicao('${r.id}')">${formatarData(r.dataInicio)}</span></td><td><div class="action-buttons">${getBotoesAcao(r)}</div></span></tr>`;
+                return `<tr onclick="visualizarRequisicao('${r.id}')">
+                    <td>${r.codigo} ${r.ficheiros && r.ficheiros.length > 0 ? '<i class="fas fa-paperclip" style="color: var(--primary); margin-left: 5px;"></i>' : ''} ${temEdicao ? '<span class="edit-badge" data-tooltip="Esta requisição foi editada"></span>' : ''}</td>
+                    <td onclick="visualizarRequisicao('${r.id}')">${r.funcao}</td>
+                    <td onclick="visualizarRequisicao('${r.id}')">${r.direcao}</td>
+                    <td onclick="visualizarRequisicao('${r.id}')"><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></td>
+                    <td onclick="visualizarRequisicao('${r.id}')">${getTipoBadge(r.tipo)}</td>
+                    <td onclick="visualizarRequisicao('${r.id}')">${formatarData(r.dataInicio)}</td>
+                    <td><div class="action-buttons">${getBotoesAcao(r)}</div></td>
+                </tr>`;
             }).join('');
             const total = Math.ceil(requisicoesFiltradas.length / estado.itensPorPagina);
             document.getElementById('paginaAnterior').disabled = estado.paginaAtual === 1;
@@ -2859,9 +3087,6 @@
                 if (podeDevolverRequisicao(req)) {
                     botoes += `<button class="btn-small btn-devolver" onclick="event.stopPropagation();abrirModalComentario('${req.id}', 'devolver')"><i class="fas fa-undo-alt"></i> Devolver</button>`;
                 }
-            }
-            if (podeIniciarRecrutamento(req)) {
-                botoes += `<button class="btn-small btn-approve" onclick="event.stopPropagation();iniciarRecrutamento('${req.id}')" style="background-color:#2196F3;"><i class="fas fa-play"></i> Iniciar Recrutamento</button>`;
             }
             if (podeFinalizarRecrutamento(req)) {
                 botoes += `<button class="btn-small btn-approve" onclick="event.stopPropagation();finalizarRecrutamento('${req.id}')" style="background-color:#ff9800;"><i class="fas fa-stop"></i> Finalizar Recrutamento</button>`;
@@ -2932,6 +3157,7 @@
                 filtrarRequisicoes();
                 carregarAprovacoes();
                 atualizarKPIs();
+                carregarDashboardTempos();
             } else { mostrarNotificacao('Erro ao salvar alterações', 'error'); }
             hideLoading();
         }
@@ -2979,7 +3205,6 @@
                 return;
             }
 
-            // Desabilitar botão para evitar duplo envio
             const submitBtn = document.getElementById('comentarioBtnSubmit');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Processando...';
@@ -2997,22 +3222,24 @@
                     
                     let novoStatus = '';
                     let emailDestinatario = '';
-                    let proximoAprovador = '';
+                    let proximoStatusTexto = '';
                     
                     if (req.status === 'em_validacao_rh') {
                         novoStatus = 'em_validacao_financas';
                         emailDestinatario = emailsAprovadores['Controlo de Gestão'];
-                        proximoAprovador = 'Controlo de Gestão';
-                        await enviarEmail(emailDestinatario, `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, proximoAprovador));
+                        proximoStatusTexto = 'Controlo de Gestão';
+                        await enviarEmail(emailDestinatario, `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, proximoStatusTexto));
                         mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo RH!`, 'success');
                     } else if (req.status === 'em_validacao_financas') {
                         novoStatus = 'em_validacao_director';
                         emailDestinatario = emailsAprovadores['Director Geral'];
-                        proximoAprovador = 'Director Geral';
-                        await enviarEmail(emailDestinatario, `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, proximoAprovador));
+                        proximoStatusTexto = 'Director Geral';
+                        await enviarEmail(emailDestinatario, `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, proximoStatusTexto));
                         mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo CG!`, 'success');
                     } else if (req.status === 'em_validacao_director') {
-                        novoStatus = 'aprovada';
+                        novoStatus = 'em_recrutamento';  // ALTERADO: Agora vai direto para recrutamento
+                        req.dataInicioRecrutamento = new Date().toISOString();
+                        
                         // Email para todos os envolvidos
                         const todosEmails = [
                             req.criadoPorEmail,
@@ -3021,9 +3248,10 @@
                             configuracoes.emailAdmin
                         ].filter((v,i,a)=>a.indexOf(v)===i);
                         for (const email of todosEmails) {
-                            await enviarEmail(email, `Requisição Aprovada - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment));
+                            await enviarEmail(email, `Requisição Aprovada - Recrutamento Iniciado - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment));
                         }
-                        mostrarNotificacao(`Requisição ${req.codigo} APROVADA!`, 'success');
+                        await enviarNotificacaoTeams(`✅ Requisição Aprovada: ${req.codigo}`, `A requisição ${req.funcao} foi aprovada por ${usuarioAtual.nome}. Recrutamento iniciado automaticamente.`, '4CAF50');
+                        mostrarNotificacao(`Requisição ${req.codigo} APROVADA e recrutamento iniciado!`, 'success');
                     }
                     
                     req.status = novoStatus;
@@ -3040,11 +3268,12 @@
                 }
                 
                 fecharModal('modalComentario');
-                await carregarRequisicoesDoSharePoint(); // recarrega todos os dados
+                await carregarRequisicoesDoSharePoint();
                 filtrarRequisicoes();
                 carregarAprovacoes();
                 atualizarKPIs();
                 atualizarGraficos();
+                carregarDashboardTempos();
                 
             } catch (error) {
                 console.error(error);
@@ -3091,7 +3320,7 @@
         }
 
         // ============================================
-        // VISUALIZADOR DE FICHEIROS COM TEMPO POR FASE
+        // VISUALIZADOR DE FICHEIROS
         // ============================================
         function gerarVisualizadorFicheiro(ficheiro) {
             const url = ficheiro.downloadUrl || ficheiro.url || ficheiro.webUrl;
@@ -3139,7 +3368,7 @@
             const body = [['Código', req.codigo], ['Função', req.funcao], ['Direção', req.direcao], ['Categoria', req.area], ['Quantidade', req.quantidade.toString()], ['Status', getStatusText(req.status)], ['Data Início', formatarData(req.dataInicio)], ['Solicitante', req.criadoPor || 'N/A'], ['Data Criação', formatarDataHora(req.dataCriacao)], ['Observações', req.observacoes || 'N/A']];
             if (req.dataInicioRecrutamento) body.push(['Início Recrutamento', formatarDataHora(req.dataInicioRecrutamento)]);
             if (req.dataFimRecrutamento) body.push(['Fim Recrutamento', formatarDataHora(req.dataFimRecrutamento)]);
-            if (req.dataInicioRecrutamento) body.push(['Tempo em Recrutamento', calcularTempoRecrutamento(req) || 'N/A']);
+            if (req.dataInicioRecrutamento) body.push(['Tempo em Recrutamento', formatarTempo(calcularTempoRecrutamento(req)) || 'N/A']);
             doc.autoTable({ startY: 40, body: body, styles: { fontSize: 10, cellPadding: 4 }, columnStyles: { 0: { fontStyle: 'bold', textColor: [46, 125, 50] } } });
             doc.save(`requisicao_${req.codigo}.pdf`);
             mostrarNotificacao('PDF da requisição exportado!', 'success');
@@ -3150,23 +3379,45 @@
             if (!req) { mostrarNotificacao('Requisição não encontrada', 'error'); return; }
             if (!podeVerRequisicao(req)) { mostrarNotificacao('Sem permissão', 'error'); return; }
             requisicaoVisualizarAtual = req;
-            const tempos = calcularTempoPorFase(req);
-            const tempoRecrutamento = calcularTempoRecrutamento(req);
+            const tempos = calcularTempoPorFaseDetalhado(req);
 
-            let html = `<div style="margin-bottom:15px;"><strong>Código:</strong> ${req.codigo}</div><div style="margin-bottom:15px;"><strong>Função:</strong> ${req.funcao}</div><div style="margin-bottom:15px;"><strong>Direção:</strong> ${req.direcao}</div><div style="margin-bottom:15px;"><strong>Categoria:</strong> ${req.area}</div><div style="margin-bottom:15px;"><strong>Quantidade:</strong> ${req.quantidade}</div><div style="margin-bottom:15px;"><strong>Status Atual:</strong> <span class="status-badge status-${req.status}">${getStatusText(req.status)}</span></div><div style="margin-bottom:15px;"><strong>Data Início:</strong> ${formatarData(req.dataInicio)}</div><div style="margin-bottom:15px;"><strong>Solicitante:</strong> ${req.criadoPor || 'N/A'}</div><div style="margin-bottom:15px;"><strong>Data Criação:</strong> ${formatarDataHora(req.dataCriacao)}</div><div style="margin-bottom:15px;"><strong>Observações:</strong> ${req.observacoes || 'N/A'}</div>`;
+            let html = `<div style="margin-bottom:15px;"><strong>Código:</strong> ${req.codigo}</div>
+                        <div style="margin-bottom:15px;"><strong>Função:</strong> ${req.funcao}</div>
+                        <div style="margin-bottom:15px;"><strong>Direção:</strong> ${req.direcao}</div>
+                        <div style="margin-bottom:15px;"><strong>Categoria:</strong> ${req.area}</div>
+                        <div style="margin-bottom:15px;"><strong>Quantidade:</strong> ${req.quantidade}</div>
+                        <div style="margin-bottom:15px;"><strong>Status Atual:</strong> <span class="status-badge status-${req.status}">${getStatusText(req.status)}</span></div>
+                        <div style="margin-bottom:15px;"><strong>Data Início:</strong> ${formatarData(req.dataInicio)}</div>
+                        <div style="margin-bottom:15px;"><strong>Solicitante:</strong> ${req.criadoPor || 'N/A'}</div>
+                        <div style="margin-bottom:15px;"><strong>Data Criação:</strong> ${formatarDataHora(req.dataCriacao)}</div>
+                        <div style="margin-bottom:15px;"><strong>Observações:</strong> ${req.observacoes || 'N/A'}</div>`;
+            
             if (req.tipo === 'substituicao') html += `<div><strong>Colaborador a Substituir:</strong> ${req.colaboradorSubstituir || 'N/A'}</div><div><strong>Motivo:</strong> ${req.motivoSubstituicao || 'N/A'}</div>`;
             if (req.tipo === 'reforco_quadro') html += `<div><strong>Justificativa do Reforço:</strong> ${req.justificativaReforco || 'N/A'}</div>`;
+            
             if (req.dataInicioRecrutamento) {
                 html += `<div><strong>Data Início Recrutamento:</strong> ${formatarDataHora(req.dataInicioRecrutamento)}</div>`;
                 if (req.dataFimRecrutamento) html += `<div><strong>Data Fim Recrutamento:</strong> ${formatarDataHora(req.dataFimRecrutamento)}</div>`;
-                html += `<div><strong>Tempo em Recrutamento:</strong> ${tempoRecrutamento || 'N/A'}</div>`;
+                html += `<div><strong>Tempo em Recrutamento:</strong> ${formatarTempo(calcularTempoRecrutamento(req)) || 'N/A'}</div>`;
             }
 
-            html += `<div style="margin-top:25px; padding-top:20px; border-top:2px solid var(--primary);"><h4 style="color: var(--primary-dark); margin-bottom:15px;"><i class="fas fa-hourglass-half"></i> Tempo por Fase de Aprovação</h4><div style="background:#f8f9fa; border-radius:8px; padding:15px;"><table style="width:100%; border-collapse:collapse;"><thead><tr><th style="text-align:left; padding:8px; background:var(--primary-light);">Fase</th><th style="text-align:left; padding:8px; background:var(--primary-light);">Status</th><th style="text-align:left; padding:8px; background:var(--primary-light);">Tempo</th><th style="text-align:left; padding:8px; background:var(--primary-light);">Data/Hora</th><th style="text-align:left; padding:8px; background:var(--primary-light);">Aprovador</th></tr></thead><tbody>`;
-            html += `</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;"><strong>📋 Fase RH</strong></td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.status === 'aprovado' ? '✅ Aprovada' : (tempos.tempoRH.status === 'pendente' ? '⏳ Pendente' : '❌ N/A')}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.dias !== null ? (tempos.tempoRH.dias + (tempos.tempoRH.dias === 1 ? ' dia' : ' dias')) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.data ? formatarDataHora(tempos.tempoRH.data) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoRH.aprovador || '-'}</td></tr>`;
-            html += `<tr><td style="padding:8px; border-bottom:1px solid #e0e0e0;"><strong>💰 Fase Controlo Gestão</strong></td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoCG.status === 'aprovado' ? '✅ Aprovada' : (tempos.tempoCG.status === 'pendente' ? '⏳ Pendente' : '❌ N/A')}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoCG.dias !== null ? (tempos.tempoCG.dias + (tempos.tempoCG.dias === 1 ? ' dia' : ' dias')) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoCG.data ? formatarDataHora(tempos.tempoCG.data) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoCG.aprovador || '-'}</td></tr>`;
-            html += `<tr><td style="padding:8px; border-bottom:1px solid #e0e0e0;"><strong>👔 Fase Director Geral</strong></td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoDir.status === 'aprovado' ? '✅ Aprovada' : (tempos.tempoDir.status === 'pendente' ? '⏳ Pendente' : '❌ N/A')}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoDir.dias !== null ? (tempos.tempoDir.dias + (tempos.tempoDir.dias === 1 ? ' dia' : ' dias')) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoDir.data ? formatarDataHora(tempos.tempoDir.data) : '-'}</td><td style="padding:8px; border-bottom:1px solid #e0e0e0;">${tempos.tempoDir.aprovador || '-'}</td></tr>`;
-            html += `</tbody></td><div style="margin-top:15px; padding:12px; background:var(--primary-light); border-radius:8px; text-align:center;"><strong><i class="fas fa-hourglass-end"></i> Tempo Total:</strong> ${tempos.tempoTotal.dias !== null ? (tempos.tempoTotal.dias + (tempos.tempoTotal.dias === 1 ? ' dia' : ' dias')) : '-'} ${tempos.tempoTotal.status === 'aprovada' ? '(Processo concluído)' : (tempos.tempoTotal.status === 'rejeitada' ? '(Processo rejeitado)' : '(Em andamento)')}</div></div></div>`;
+            html += `<div style="margin-top:25px; padding-top:20px; border-top:2px solid var(--primary);">
+                        <h4 style="color: var(--primary-dark); margin-bottom:15px;"><i class="fas fa-hourglass-half"></i> Tempo por Fase de Aprovação Detalhado</h4>
+                        <div class="tempos-fases-container" style="grid-template-columns: repeat(4, 1fr);">
+                            <div class="fase-card rh" style="border-left-color: #4CAF50;">
+                                <div class="fase-header"><div class="fase-titulo">Fase RH</div><div class="fase-tempo">${formatarTempo(tempos.tempoRH)}</div></div>
+                            </div>
+                            <div class="fase-card cg" style="border-left-color: #FF9800;">
+                                <div class="fase-header"><div class="fase-titulo">Fase CG</div><div class="fase-tempo">${formatarTempo(tempos.tempoCG)}</div></div>
+                            </div>
+                            <div class="fase-card dg" style="border-left-color: #f44336;">
+                                <div class="fase-header"><div class="fase-titulo">Fase Director</div><div class="fase-tempo">${formatarTempo(tempos.tempoDir)}</div></div>
+                            </div>
+                            <div class="fase-card recrutamento" style="border-left-color: #2196F3;">
+                                <div class="fase-header"><div class="fase-titulo">Recrutamento</div><div class="fase-tempo">${formatarTempo(tempos.tempoRecrutamento)}</div></div>
+                            </div>
+                        </div>
+                    </div>`;
 
             const historico = req.historicoComentarios || [];
             if (historico.length > 0) {
@@ -3201,7 +3452,7 @@
             const tbody = document.getElementById('corpoAprovacoes');
             if (!tbody) return;
             if (!isAprovador()) { 
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</span>NonNullable</span>'; 
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</td></tr>'; 
                 return; 
             }
             let pendentes = [];
@@ -3211,23 +3462,21 @@
             else if (usuarioAtual?.perfil === 'Director Geral') pendentes = requisicoes.filter(r => r.status === 'em_validacao_director');
             pendentes = pendentes.filter(r => !utilizadorJaAprovou(r) && r.criadoPorEmail !== usuarioAtual.email);
             if (pendentes.length === 0) { 
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente. Consulte a aba "Requisições" para ver outros estados.</span>NonNullable</span>'; 
+                tbody.innerHTML = '<td><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente.</td></tr>'; 
                 return; 
             }
-            tbody.innerHTML = pendentes.map(r => `<tr onclick="visualizarRequisicao('${r.id}')"><td>${r.codigo}${r.ficheiros && r.ficheiros.length > 0 ? ' 📎' : ''}${podeEditarRequisicao(r) ? '<span class="edit-badge" data-tooltip="Pode editar esta requisição"></span>' : ''}</span></td><td onclick="visualizarRequisicao('${r.id}')">${r.funcao}</span></td><td onclick="visualizarRequisicao('${r.id}')">${r.direcao}</span></td><td onclick="visualizarRequisicao('${r.id}')"><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></span></td><td onclick="visualizarRequisicao('${r.id}')">${formatarData(r.dataCriacao)}</span></td><td><div class="action-buttons">${getBotoesAcao(r)}</div></span></tr>`).join('');
+            tbody.innerHTML = pendentes.map(r => `<tr onclick="visualizarRequisicao('${r.id}')">
+                <td>${r.codigo}${r.ficheiros && r.ficheiros.length > 0 ? ' 📎' : ''}${podeEditarRequisicao(r) ? '<span class="edit-badge" data-tooltip="Pode editar esta requisição"></span>' : ''}</td>
+                <td onclick="visualizarRequisicao('${r.id}')">${r.funcao}</td>
+                <td onclick="visualizarRequisicao('${r.id}')">${r.direcao}</td>
+                <td onclick="visualizarRequisicao('${r.id}')"><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></td>
+                <td onclick="visualizarRequisicao('${r.id}')">${formatarData(r.dataCriacao)}</td>
+                <td><div class="action-buttons">${getBotoesAcao(r)}</div></td>
+            </tr>`).join('');
         }
 
         function carregarDashboard() {
-            const cont = document.getElementById('atividadesRecentes');
-            if (!cont) return;
-            const requisicoesVisiveis = filtrarRequisicoesVisiveis(requisicoes);
-            if (requisicoesVisiveis.length === 0) { cont.innerHTML = '<div style="padding:20px;text-align:center;">Nenhuma atividade recente</div>'; return; }
-            cont.innerHTML = requisicoesVisiveis.slice(0, 5).map(r => `
-                    <div class="activity-item">
-                        <i class="fas fa-plus-circle" style="color: var(--primary);"></i>
-                        <div><strong>${r.codigo}</strong> - ${r.funcao}<br><small>Criada por ${r.criadoPor || 'Desconhecido'} em ${formatarData(r.dataCriacao)}</small></div>
-                    </div>
-                `).join('');
+            carregarDashboardTempos();
         }
 
         function atualizarKPIs() {
@@ -3481,6 +3730,7 @@
                 carregarAprovacoes();
                 atualizarKPIs();
                 atualizarGraficos();
+                carregarDashboardTempos();
                 mostrarNotificacao(`Requisição ${novoCodigo} criada com sucesso!`, 'success');
             } else {
                 mostrarNotificacao(`Erro ao salvar no SharePoint. Verifique se a lista "${SHAREPOINT_CONFIG.listName}" e a coluna "Ficheiros" existem.`, 'error');
