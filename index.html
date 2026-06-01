@@ -733,7 +733,7 @@
 
         .tempos-fases-container, .status-detalhado-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
@@ -778,12 +778,12 @@
         }
 
         .fase-titulo, .status-titulo {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
         }
 
         .fase-tempo, .status-quantidade {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
         }
 
@@ -802,12 +802,13 @@
 
         .detalhe-label {
             color: var(--gray-500);
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .detalhe-valor {
             font-weight: 600;
             color: var(--gray-600);
+            font-size: 12px;
         }
 
         .tempo-positivo {
@@ -823,27 +824,14 @@
 
         .grafico-barra-fill {
             background: var(--primary);
-            height: 30px;
+            height: 25px;
             display: flex;
             align-items: center;
             justify-content: flex-end;
             padding-right: 10px;
             color: white;
-            font-size: 12px;
+            font-size: 11px;
             transition: width 0.5s ease;
-        }
-
-        .pie-chart-container {
-            position: relative;
-            height: 200px;
-            width: 100%;
-            margin: 20px 0;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
         }
 
         .main-layout {
@@ -888,7 +876,7 @@
         .modal-content {
             background: white;
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px;
             border-radius: var(--border-radius);
             max-height: 90vh;
             overflow-y: auto;
@@ -1179,7 +1167,7 @@
             border: 1px solid #ddd;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -1198,7 +1186,7 @@
         }
 
         .ficheiro-tab i {
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .ficheiro-viewer-container {
@@ -1255,7 +1243,7 @@
         }
 
         .ficheiro-preview-unavailable i {
-            font-size: 64px;
+            font-size: 48px;
             margin-bottom: 20px;
             opacity: 0.5;
         }
@@ -1279,10 +1267,11 @@
         .ficheiro-details .ficheiro-nome {
             font-weight: 600;
             color: var(--gray-600);
+            font-size: 13px;
         }
 
         .ficheiro-details .ficheiro-meta {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--gray-500);
             margin-top: 3px;
         }
@@ -1299,7 +1288,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            font-size: 13px;
+            font-size: 12px;
             transition: all 0.2s;
             border: none;
         }
@@ -1482,16 +1471,11 @@
             padding: 8px;
             background: #f5f5f5;
             border-radius: 4px;
+            font-size: 12px;
         }
 
         body.dark-mode .historico-comentario {
             background: #2a2a40;
-        }
-
-        .historico-status {
-            margin-top: 5px;
-            font-size: 11px;
-            color: #888;
         }
 
         .direcoes-list {
@@ -1648,6 +1632,14 @@
             border-radius: 12px;
             margin-left: 8px;
             display: inline-block;
+        }
+
+        .badge {
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
         }
     </style>
 </head>
@@ -2016,7 +2008,7 @@
             cache: { cacheLocation: "sessionStorage" }
         };
 
-        const loginRequest = { scopes: ["User.Read", "email", "profile", "openid", "offline_access", "Mail.Send", "Sites.ReadWrite.All"] };
+        const loginRequest = { scopes: ["User.Read", "email", "profile", "openid", "offline_access", "Mail.Send", "Sites.ReadWrite.All", "Files.ReadWrite.All"] };
 
         const perfisManuais = {
             'marcio.carlos@accordgrouplda.com': 'Administrador',
@@ -2099,6 +2091,7 @@
         function formatarData(d) { if (!d) return ''; return new Date(d).toLocaleDateString('pt-PT'); }
         function formatarDataHora(d) { if (!d) return ''; return new Date(d).toLocaleString('pt-PT'); }
         function formatarTamanho(bytes) {
+            if (!bytes) return '0 B';
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
@@ -2138,12 +2131,13 @@
         }
 
         function getIconePorTipo(tipo) {
-            if (tipo && tipo.startsWith('image/')) return 'fa-image';
+            if (!tipo) return 'fa-file';
+            if (tipo.startsWith('image/')) return 'fa-image';
             if (tipo === 'application/pdf') return 'fa-file-pdf';
-            if (tipo && tipo.includes('word')) return 'fa-file-word';
-            if (tipo && tipo.includes('excel')) return 'fa-file-excel';
-            if (tipo && tipo.includes('powerpoint')) return 'fa-file-powerpoint';
-            if (tipo && tipo.startsWith('text/')) return 'fa-file-alt';
+            if (tipo.includes('word')) return 'fa-file-word';
+            if (tipo.includes('excel')) return 'fa-file-excel';
+            if (tipo.includes('powerpoint')) return 'fa-file-powerpoint';
+            if (tipo.startsWith('text/')) return 'fa-file-alt';
             return 'fa-file';
         }
 
@@ -2620,29 +2614,83 @@
             return driveData.id;
         }
 
-        // ========== NOVA FUNÇÃO ADICIONADA: Gerar link de compartilhamento para ficheiros ==========
-        async function getFileShareLink(fileId, siteId, driveId) {
+        // ========== FUNÇÕES CORRIGIDAS PARA ANEXOS ==========
+        
+        // Função para criar link compartilhado permanente
+        async function criarLinkCompartilhadoPermanente(itemId, siteId, driveId) {
             try {
                 const token = await getSharePointToken();
-                const response = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${fileId}/createLink`, {
+                
+                // Tentar criar link com escopo de organização (todos podem ver)
+                const response = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${itemId}/createLink`, {
                     method: 'POST',
                     headers: { 
                         'Authorization': `Bearer ${token}`, 
                         'Content-Type': 'application/json' 
                     },
-                    body: JSON.stringify({ type: "view", scope: "organization" })
+                    body: JSON.stringify({ 
+                        type: "view",
+                        scope: "organization",
+                        expireDateTime: null  // Nunca expira
+                    })
                 });
+                
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('✅ Link permanente criado:', data.link.webUrl);
                     return data.link.webUrl;
+                } else {
+                    const error = await response.json();
+                    console.error('❌ Erro ao criar link:', error);
+                    
+                    // Fallback: URL direta do SharePoint
+                    return `https://accordgroupslda.sharepoint.com/sites/SIR/_layouts/15/download.aspx?UniqueId=${itemId}`;
                 }
-                return null;
             } catch (error) {
-                console.error('Erro ao gerar link de compartilhamento:', error);
+                console.error('❌ Erro ao criar link:', error);
                 return null;
             }
         }
 
+        // Função para criar pasta se não existir
+        async function criarPastaSeNecessario(siteId, driveId, pastaNome, token) {
+            try {
+                const folderUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root:/${pastaNome}`;
+                const checkResponse = await fetch(folderUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (checkResponse.status === 404) {
+                    const createResponse = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children`, {
+                        method: 'POST',
+                        headers: { 
+                            'Authorization': `Bearer ${token}`, 
+                            'Content-Type': 'application/json' 
+                        },
+                        body: JSON.stringify({
+                            name: pastaNome,
+                            folder: { },
+                            "@microsoft.graph.conflictBehavior": "rename"
+                        })
+                    });
+                    
+                    if (createResponse.ok) {
+                        const folderData = await createResponse.json();
+                        console.log('📁 Pasta criada:', pastaNome);
+                        
+                        // Compartilhar a pasta também
+                        await criarLinkCompartilhadoPermanente(folderData.id, siteId, driveId);
+                        return folderData;
+                    }
+                }
+                return null;
+            } catch (error) {
+                console.warn('⚠️ Erro ao criar pasta:', error);
+                return null;
+            }
+        }
+
+        // FUNÇÃO PRINCIPAL DE UPLOAD CORRIGIDA
         async function uploadFicheiroParaSharePoint(arquivo, requisicaoCodigo) {
             try {
                 const token = await getSharePointToken();
@@ -2650,57 +2698,198 @@
                 const driveId = await getDriveId();
                 const pastaNome = `Requisicao_${requisicaoCodigo}`;
                 const nomeArquivo = `${Date.now()}_${arquivo.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-
+                
+                // Criar pasta se necessário
+                await criarPastaSeNecessario(siteId, driveId, pastaNome, token);
+                
                 let fileData;
+                
+                // Upload do arquivo
                 if (arquivo.size < 4 * 1024 * 1024) {
                     const reader = new FileReader();
-                    const arrayBufferPromise = new Promise((resolve, reject) => { reader.onload = () => resolve(reader.result); reader.onerror = reject; });
-                    reader.readAsArrayBuffer(arquivo.file);
-                    const arrayBuffer = await arrayBufferPromise;
+                    const arrayBuffer = await new Promise((resolve, reject) => {
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsArrayBuffer(arquivo.file);
+                    });
+                    
                     const uploadUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root:/${pastaNome}/${nomeArquivo}:/content`;
                     const response = await fetch(uploadUrl, {
                         method: 'PUT',
-                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': arquivo.type || 'application/octet-stream' },
+                        headers: { 
+                            'Authorization': `Bearer ${token}`, 
+                            'Content-Type': arquivo.type || 'application/octet-stream' 
+                        },
                         body: arrayBuffer
                     });
-                    if (!response.ok) throw new Error(`Erro no upload: ${response.status}`);
+                    
+                    if (!response.ok) throw new Error(`Upload falhou: ${response.status}`);
                     fileData = await response.json();
                 } else {
+                    // Upload para arquivos grandes
                     const uploadUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root:/${pastaNome}/${nomeArquivo}:/createUploadSession`;
                     const sessionResponse = await fetch(uploadUrl, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ "@microsoft.graph.conflictBehavior": "rename" })
+                        headers: { 
+                            'Authorization': `Bearer ${token}`, 
+                            'Content-Type': 'application/json' 
+                        },
+                        body: JSON.stringify({ 
+                            "@microsoft.graph.conflictBehavior": "rename" 
+                        })
                     });
-                    if (!sessionResponse.ok) throw new Error(`Erro ao criar sessão de upload: ${sessionResponse.status}`);
+                    
+                    if (!sessionResponse.ok) throw new Error(`Erro na sessão: ${sessionResponse.status}`);
                     const sessionData = await sessionResponse.json();
-                    const uploadSessionUrl = sessionData.uploadUrl;
+                    
                     const reader = new FileReader();
-                    const arrayBufferPromise = new Promise((resolve, reject) => { reader.onload = () => resolve(reader.result); reader.onerror = reject; });
-                    reader.readAsArrayBuffer(arquivo.file);
-                    const arrayBuffer = await arrayBufferPromise;
-                    const uploadResponse = await fetch(uploadSessionUrl, {
+                    const arrayBuffer = await new Promise((resolve, reject) => {
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsArrayBuffer(arquivo.file);
+                    });
+                    
+                    const uploadResponse = await fetch(sessionData.uploadUrl, {
                         method: 'PUT',
-                        headers: { 'Content-Length': arrayBuffer.byteLength, 'Content-Range': `bytes 0-${arrayBuffer.byteLength - 1}/${arrayBuffer.byteLength}` },
+                        headers: { 
+                            'Content-Length': arrayBuffer.byteLength,
+                            'Content-Range': `bytes 0-${arrayBuffer.byteLength - 1}/${arrayBuffer.byteLength}` 
+                        },
                         body: arrayBuffer
                     });
-                    if (!uploadResponse.ok) throw new Error(`Erro no upload: ${uploadResponse.status}`);
+                    
+                    if (!uploadResponse.ok) throw new Error(`Upload falhou: ${uploadResponse.status}`);
                     fileData = await uploadResponse.json();
                 }
-
-                const shareResponse = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${fileData.id}/createLink`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: "view", scope: "organization" })
-                });
-                let link = fileData.webUrl;
-                let downloadUrl = fileData['@microsoft.graph.downloadUrl'] || fileData.webUrl;
-                if (shareResponse.ok) { const shareData = await shareResponse.json(); link = shareData.link.webUrl; }
+                
+                // Criar link permanente compartilhado
+                const sharedLink = await criarLinkCompartilhadoPermanente(fileData.id, siteId, driveId);
+                
+                console.log('✅ Upload concluído!');
+                console.log('📎 Link compartilhado:', sharedLink);
+                
                 return {
-                    id: fileData.id, nome: arquivo.name, tamanho: arquivo.size, tipo: arquivo.type,
-                    url: link, downloadUrl: downloadUrl, webUrl: fileData.webUrl, dataUpload: new Date().toISOString()
+                    id: fileData.id,
+                    nome: arquivo.name,
+                    tamanho: arquivo.size,
+                    tipo: arquivo.type,
+                    url: sharedLink || fileData.webUrl,
+                    downloadUrl: fileData['@microsoft.graph.downloadUrl'] || fileData.webUrl,
+                    webUrl: fileData.webUrl,
+                    dataUpload: new Date().toISOString(),
+                    compartilhado: true
                 };
-            } catch (error) { console.error('❌ Erro ao fazer upload do arquivo:', error); throw error; }
+                
+            } catch (error) {
+                console.error('❌ Erro no upload:', error);
+                throw error;
+            }
+        }
+
+        // Função para regenerar links de arquivos existentes
+        async function regenerarLinkAnexo(fileId) {
+            try {
+                const siteId = await getSiteId();
+                const driveId = await getDriveId();
+                const novoLink = await criarLinkCompartilhadoPermanente(fileId, siteId, driveId);
+                return novoLink;
+            } catch (error) {
+                console.error('Erro ao regenerar link:', error);
+                return null;
+            }
+        }
+
+        // Função corrigida para visualizar anexos
+        function gerarVisualizadorFicheiro(ficheiro) {
+            let url = ficheiro.url || ficheiro.downloadUrl || ficheiro.webUrl;
+            
+            if (!url) {
+                return `<div class="ficheiro-preview-unavailable">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Link não disponível</h4>
+                    <button class="btn-small btn-approve" onclick="tentarRegenerarLink('${ficheiro.id}')">
+                        <i class="fas fa-sync-alt"></i> Tentar regenerar link
+                    </button>
+                </div>`;
+            }
+            
+            const fileExtension = ficheiro.nome ? ficheiro.nome.split('.').pop().toLowerCase() : '';
+            const mimeType = ficheiro.tipo || '';
+            
+            // Imagens
+            if (mimeType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(fileExtension)) {
+                return `<div class="ficheiro-preview-image">
+                    <img src="${url}" alt="${ficheiro.nome}" style="max-width:100%; max-height:500px; border-radius:8px;"
+                         onerror="this.onerror=null; this.src=''; this.alt='Erro ao carregar imagem';">
+                </div>`;
+            }
+            
+            // PDF
+            if (mimeType === 'application/pdf' || fileExtension === 'pdf') {
+                return `<iframe src="https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true" 
+                                style="width:100%; height:600px; border:none;"></iframe>`;
+            }
+            
+            // Documentos Office
+            if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(fileExtension)) {
+                const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+                return `<iframe src="${officeViewerUrl}" style="width:100%; height:600px; border:none;"></iframe>`;
+            }
+            
+            // Texto
+            if (mimeType.startsWith('text/') || fileExtension === 'txt') {
+                return `<iframe src="${url}" style="width:100%; height:500px; border:1px solid #ddd;"></iframe>`;
+            }
+            
+            // Fallback
+            return `<div class="ficheiro-preview-unavailable">
+                <i class="fas fa-file"></i>
+                <h4>Pré-visualização não disponível</h4>
+                <p><strong>${ficheiro.nome}</strong> (${formatarTamanho(ficheiro.tamanho)})</p>
+                <div style="margin-top: 20px;">
+                    <button class="btn-download" onclick="baixarFicheiro('${url}', '${ficheiro.nome}')">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>
+            </div>`;
+        }
+
+        async function tentarRegenerarLink(fileId) {
+            showLoading();
+            try {
+                const novoLink = await regenerarLinkAnexo(fileId);
+                if (novoLink) {
+                    // Atualizar o link na requisição atual
+                    if (requisicaoVisualizarAtual && requisicaoVisualizarAtual.ficheiros) {
+                        for (const f of requisicaoVisualizarAtual.ficheiros) {
+                            if (f.id === fileId) {
+                                f.url = novoLink;
+                                break;
+                            }
+                        }
+                        await atualizarRequisicaoNoSharePoint(requisicaoVisualizarAtual);
+                    }
+                    mostrarNotificacao('Link regenerado com sucesso! Recarregue a página.', 'success');
+                    location.reload();
+                } else {
+                    mostrarNotificacao('Não foi possível regenerar o link', 'error');
+                }
+            } catch (error) {
+                mostrarNotificacao('Erro ao regenerar link: ' + error.message, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function baixarFicheiro(url, nome) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nome;
+            a.target = '_blank';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            mostrarNotificacao(`Download de "${nome}" iniciado!`, 'success');
         }
 
         function gerarCodigoRequisicao() {
@@ -2731,11 +2920,10 @@
                         historicoComentarios: []
                     }
                 ];
-                mostrarNotificacao('Usando dados de exemplo (conexão com SharePoint não disponível). As requisições serão salvas localmente.', 'warning');
+                mostrarNotificacao('Usando dados de exemplo', 'warning');
             }
         }
 
-        // ========== FUNÇÃO CORRIGIDA: Carregar requisições com links de ficheiros ==========
         async function carregarRequisicoesDoSharePoint() {
             showLoading();
             try {
@@ -2747,7 +2935,6 @@
                 const listCheck = await fetch(listCheckUrl, { headers: { 'Authorization': `Bearer ${token}` } });
                 
                 if (!listCheck.ok) {
-                    console.warn('Lista não encontrada, usando dados de exemplo');
                     carregarDadosExemplo();
                     hideLoading();
                     filtrarRequisicoes();
@@ -2770,22 +2957,14 @@
                             if (!requisicoesMap.has(item.id)) {
                                 let ficheiros = [], historicoComentarios = [];
                                 
-                                // CORREÇÃO: Processar ficheiros e gerar links válidos
                                 if (f.Ficheiros) { 
                                     try { 
                                         ficheiros = JSON.parse(f.Ficheiros);
-                                        // GERAR LINKS VÁLIDOS PARA CADA FICHEIRO
-                                        for (let i = 0; i < ficheiros.length; i++) {
-                                            if (ficheiros[i].id && (!ficheiros[i].downloadUrl || !ficheiros[i].webUrl)) {
-                                                try {
-                                                    const fileUrl = await getFileShareLink(ficheiros[i].id, siteId, driveId);
-                                                    if (fileUrl) {
-                                                        ficheiros[i].webUrl = fileUrl;
-                                                        ficheiros[i].downloadUrl = fileUrl;
-                                                    }
-                                                } catch (err) {
-                                                    console.warn(`Erro ao gerar link para ${ficheiros[i].nome}:`, err);
-                                                }
+                                        // Verificar e regenerar links se necessário
+                                        for (const ficheiro of ficheiros) {
+                                            if (ficheiro.url && !ficheiro.url.includes('sharepoint')) {
+                                                const novoLink = await regenerarLinkAnexo(ficheiro.id);
+                                                if (novoLink) ficheiro.url = novoLink;
                                             }
                                         }
                                     } catch (e) { console.warn("Erro parse Ficheiros", e); } 
@@ -2809,7 +2988,6 @@
                             }
                         }
                         requisicoes = Array.from(requisicoesMap.values());
-                        console.log(`📊 Carregadas ${requisicoes.length} requisições únicas com ${requisicoes.filter(r => r.ficheiros.length > 0).length} tendo anexos`);
                         mostrarNotificacao(`Carregadas ${requisicoes.length} requisições`, 'success');
                     } else { requisicoes = []; carregarDadosExemplo(); }
                 } else { requisicoes = []; carregarDadosExemplo(); }
@@ -2891,17 +3069,12 @@
                 return; 
             }
             
-            if (req.dataInicioRecrutamento) { 
-                mostrarNotificacao('Esta requisição já teve o recrutamento iniciado anteriormente!', 'warning'); 
-                return; 
-            }
-            
             showLoading();
             try {
                 req.status = 'em_recrutamento';
                 req.dataInicioRecrutamento = new Date().toISOString();
                 
-                adicionarAoHistorico(req, 'inicio_recrutamento_manual', `Recrutamento iniciado manualmente por ${usuarioAtual.nome} (Administrador)`);
+                adicionarAoHistorico(req, 'inicio_recrutamento_manual', `Recrutamento iniciado manualmente por ${usuarioAtual.nome}`);
                 
                 await atualizarRequisicaoNoSharePoint(req);
                 await salvarHistoricoNoSharePoint(req);
@@ -2910,7 +3083,7 @@
                 await enviarEmail(emailsAprovadores['Recrutador'], `Recrutamento Iniciado - ${req.codigo}`, templateInicioRecrutamentoManual(req));
                 await enviarNotificacaoTeams(`🚀 Recrutamento Iniciado Manualmente: ${req.codigo}`, `O administrador ${usuarioAtual.nome} iniciou manualmente o recrutamento para ${req.funcao}.`, '2196F3');
                 
-                adicionarNotificacao('Recrutamento Iniciado Manualmente', `Recrutamento iniciado manualmente para ${req.codigo} - ${req.funcao} pelo administrador.`, 'info', req.id);
+                adicionarNotificacao('Recrutamento Iniciado Manualmente', `Recrutamento iniciado manualmente para ${req.codigo}`, 'info', req.id);
                 
                 mostrarNotificacao(`Recrutamento da requisição ${req.codigo} iniciado manualmente!`, 'success');
                 
@@ -2935,12 +3108,12 @@
             try {
                 req.status = 'aguardando_confirmacao_solicitante';
                 req.dataFimRecrutamento = new Date().toISOString();
-                adicionarAoHistorico(req, 'fim_recrutamento', `Recrutamento concluído por ${usuarioAtual.nome}. Tempo total: ${formatarTempo(calcularTempoRecrutamento(req))}`);
+                adicionarAoHistorico(req, 'fim_recrutamento', `Recrutamento concluído por ${usuarioAtual.nome}`);
                 await atualizarRequisicaoNoSharePoint(req);
                 await salvarHistoricoNoSharePoint(req);
                 await enviarEmail(req.criadoPorEmail, `Recrutamento Concluído - ${req.codigo}`, templateFimRecrutamento(req));
-                await enviarNotificacaoTeams(`✅ Recrutamento Concluído: ${req.codigo}`, `O recrutamento para ${req.funcao} foi finalizado. Aguardando confirmação do solicitante.`, '4CAF50');
-                adicionarNotificacao('Recrutamento Concluído', `Recrutamento finalizado para ${req.codigo} - ${req.funcao}. Aguardando confirmação do solicitante.`, 'success', req.id);
+                await enviarNotificacaoTeams(`✅ Recrutamento Concluído: ${req.codigo}`, `O recrutamento para ${req.funcao} foi finalizado.`, '4CAF50');
+                adicionarNotificacao('Recrutamento Concluído', `Recrutamento finalizado para ${req.codigo}`, 'success', req.id);
                 mostrarNotificacao(`Recrutamento da requisição ${req.codigo} concluído!`, 'success');
                 filtrarRequisicoes();
                 carregarAprovacoes();
@@ -2957,7 +3130,7 @@
         async function confirmarAtendimento(id) {
             const req = requisicoes.find(r => r.id == id);
             if (!req) { mostrarNotificacao('Requisição não encontrada', 'error'); return; }
-            if (!podeConfirmarAtendimento(req)) { mostrarNotificacao('Não tem permissão para confirmar o atendimento desta requisição', 'error'); return; }
+            if (!podeConfirmarAtendimento(req)) { mostrarNotificacao('Não tem permissão para confirmar o atendimento', 'error'); return; }
             showLoading();
             try {
                 req.status = 'concluida';
@@ -2965,9 +3138,9 @@
                 await atualizarRequisicaoNoSharePoint(req);
                 await salvarHistoricoNoSharePoint(req);
                 await enviarEmailParaTodos(`Requisição Confirmada - ${req.codigo}`, templateConfirmacaoAtendimento(req));
-                await enviarNotificacaoTeams(`🎉 Requisição Confirmada: ${req.codigo}`, `O solicitante ${usuarioAtual.nome} confirmou o atendimento da requisição ${req.funcao}. Processo concluído.`, '4CAF50');
-                adicionarNotificacao('Requisição Confirmada', `A requisição ${req.codigo} foi confirmada como atendida pelo solicitante.`, 'success', req.id);
-                mostrarNotificacao(`Requisição ${req.codigo} confirmada como atendida! Processo concluído.`, 'success');
+                await enviarNotificacaoTeams(`🎉 Requisição Confirmada: ${req.codigo}`, `O solicitante confirmou o atendimento.`, '4CAF50');
+                adicionarNotificacao('Requisição Confirmada', `A requisição ${req.codigo} foi confirmada como atendida.`, 'success', req.id);
+                mostrarNotificacao(`Requisição ${req.codigo} confirmada como atendida!`, 'success');
                 filtrarRequisicoes();
                 carregarAprovacoes();
                 atualizarKPIs();
@@ -2989,37 +3162,24 @@
             
             if (aprovRH) {
                 tempoRH = calcularTempoEmMilissegundos(req.dataCriacao, aprovRH.data);
-            } else if (req.status === 'em_validacao_rh' || 
-                       (req.status !== 'em_validacao_rh' && !aprovRH && (aprovCG || aprovDir))) {
+            } else if (req.status === 'em_validacao_rh') {
                 tempoRH = calcularTempoEmMilissegundos(req.dataCriacao, null);
             }
             
             if (aprovCG && aprovRH) {
                 tempoCG = calcularTempoEmMilissegundos(aprovRH.data, aprovCG.data);
-            } else if (aprovCG && !aprovRH) {
-                tempoCG = calcularTempoEmMilissegundos(req.dataCriacao, aprovCG.data);
-            } else if ((req.status === 'em_validacao_financas' || req.status === 'em_validacao_director' || req.status === 'em_recrutamento') && aprovRH && !aprovCG) {
+            } else if ((req.status === 'em_validacao_financas' || req.status === 'em_validacao_director') && aprovRH && !aprovCG) {
                 tempoCG = calcularTempoEmMilissegundos(aprovRH.data, null);
             }
             
             if (aprovDir && aprovCG) {
                 tempoDir = calcularTempoEmMilissegundos(aprovCG.data, aprovDir.data);
-            } else if (aprovDir && !aprovCG && aprovRH) {
-                tempoDir = calcularTempoEmMilissegundos(aprovRH.data, aprovDir.data);
-            } else if (aprovDir && !aprovCG && !aprovRH) {
-                tempoDir = calcularTempoEmMilissegundos(req.dataCriacao, aprovDir.data);
             } else if (req.status === 'em_validacao_director' && aprovCG && !aprovDir) {
                 tempoDir = calcularTempoEmMilissegundos(aprovCG.data, null);
-            } else if (req.status === 'em_validacao_director' && !aprovCG && aprovRH) {
-                tempoDir = calcularTempoEmMilissegundos(aprovRH.data, null);
             }
             
             if (req.dataInicioRecrutamento) {
-                if (req.dataFimRecrutamento) {
-                    tempoRecrutamento = calcularTempoEmMilissegundos(req.dataInicioRecrutamento, req.dataFimRecrutamento);
-                } else if (req.status === 'em_recrutamento') {
-                    tempoRecrutamento = calcularTempoEmMilissegundos(req.dataInicioRecrutamento, null);
-                }
+                tempoRecrutamento = calcularTempoEmMilissegundos(req.dataInicioRecrutamento, req.dataFimRecrutamento);
             }
             
             return { tempoRH, tempoCG, tempoDir, tempoRecrutamento };
@@ -3030,7 +3190,6 @@
             if (!container) return;
             
             const todasRequisicoes = requisicoes;
-            
             const aprovadasSemRecrutamento = todasRequisicoes.filter(r => r.status === 'aprovada' && !r.dataInicioRecrutamento);
             
             let totalTempoRH = 0, totalTempoCG = 0, totalTempoDir = 0, totalTempoRecrutamento = 0;
@@ -3040,22 +3199,10 @@
             todasRequisicoes.forEach(req => {
                 const tempos = calcularTempoPorFaseDetalhado(req);
                 
-                if (tempos.tempoRH !== null) {
-                    totalTempoRH += tempos.tempoRH;
-                    countRH++;
-                }
-                if (tempos.tempoCG !== null) {
-                    totalTempoCG += tempos.tempoCG;
-                    countCG++;
-                }
-                if (tempos.tempoDir !== null) {
-                    totalTempoDir += tempos.tempoDir;
-                    countDir++;
-                }
-                if (tempos.tempoRecrutamento !== null) {
-                    totalTempoRecrutamento += tempos.tempoRecrutamento;
-                    countRecrutamento++;
-                }
+                if (tempos.tempoRH !== null) { totalTempoRH += tempos.tempoRH; countRH++; }
+                if (tempos.tempoCG !== null) { totalTempoCG += tempos.tempoCG; countCG++; }
+                if (tempos.tempoDir !== null) { totalTempoDir += tempos.tempoDir; countDir++; }
+                if (tempos.tempoRecrutamento !== null) { totalTempoRecrutamento += tempos.tempoRecrutamento; countRecrutamento++; }
                 
                 if (req.status === 'em_validacao_rh') requisicoesEmAprovacaoRH++;
                 if (req.status === 'em_validacao_financas') requisicoesEmAprovacaoCG++;
@@ -3076,9 +3223,9 @@
                     <div style="background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                             <div>
-                                <i class="fas fa-exclamation-triangle" style="color: #ff9800; font-size: 20px;"></i>
-                                <strong style="margin-left: 10px;">Atenção Administrador!</strong>
-                                <span style="margin-left: 10px;">Existem ${aprovadasSemRecrutamento.length} requisição(ões) aprovada(s) aguardando início de recrutamento.</span>
+                                <i class="fas fa-exclamation-triangle" style="color: #ff9800;"></i>
+                                <strong> Atenção Administrador!</strong>
+                                <span> ${aprovadasSemRecrutamento.length} requisição(ões) aprovada(s) aguardando início de recrutamento.</span>
                             </div>
                             <button onclick="filtrarPorStatus('aprovada')" class="btn-small btn-approve" style="background-color: #ff9800;">
                                 <i class="fas fa-eye"></i> Ver Requisições
@@ -3093,7 +3240,7 @@
                     <div class="fase-card rh" onclick="filtrarPorStatus('em_validacao_rh')">
                         <div class="fase-header">
                             <div class="fase-titulo"><i class="fas fa-user-tie"></i> Fase RH</div>
-                            <div class="fase-tempo ${mediaRH > 0 ? 'tempo-positivo' : ''}">${formatarTempo(mediaRH)}</div>
+                            <div class="fase-tempo">${formatarTempo(mediaRH)}</div>
                         </div>
                         <div class="grafico-barra">
                             <div class="grafico-barra-fill" style="width: ${(mediaRH / maxTempo) * 100}%; background: #4CAF50;">
@@ -3101,25 +3248,16 @@
                             </div>
                         </div>
                         <div class="fase-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Tempo médio:</span>
-                                <span class="detalhe-valor">${formatarTempo(mediaRH)}</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Total analisado:</span>
-                                <span class="detalhe-valor">${countRH} requisições</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Em aprovação agora:</span>
-                                <span class="detalhe-valor">${requisicoesEmAprovacaoRH} pendentes</span>
-                            </div>
+                            <div class="detalhe-item"><span>Tempo médio:</span><span>${formatarTempo(mediaRH)}</span></div>
+                            <div class="detalhe-item"><span>Total analisado:</span><span>${countRH} requisições</span></div>
+                            <div class="detalhe-item"><span>Em aprovação:</span><span>${requisicoesEmAprovacaoRH} pendentes</span></div>
                         </div>
                     </div>
                     
                     <div class="fase-card cg" onclick="filtrarPorStatus('em_validacao_financas')">
                         <div class="fase-header">
-                            <div class="fase-titulo"><i class="fas fa-chart-line"></i> Fase Controlo Gestão</div>
-                            <div class="fase-tempo ${mediaCG > 0 ? 'tempo-positivo' : ''}">${formatarTempo(mediaCG)}</div>
+                            <div class="fase-titulo"><i class="fas fa-chart-line"></i> Fase CG</div>
+                            <div class="fase-tempo">${formatarTempo(mediaCG)}</div>
                         </div>
                         <div class="grafico-barra">
                             <div class="grafico-barra-fill" style="width: ${(mediaCG / maxTempo) * 100}%; background: #FF9800;">
@@ -3127,25 +3265,16 @@
                             </div>
                         </div>
                         <div class="fase-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Tempo médio:</span>
-                                <span class="detalhe-valor">${formatarTempo(mediaCG)}</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Total analisado:</span>
-                                <span class="detalhe-valor">${countCG} requisições</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Em aprovação agora:</span>
-                                <span class="detalhe-valor">${requisicoesEmAprovacaoCG} pendentes</span>
-                            </div>
+                            <div class="detalhe-item"><span>Tempo médio:</span><span>${formatarTempo(mediaCG)}</span></div>
+                            <div class="detalhe-item"><span>Total analisado:</span><span>${countCG} requisições</span></div>
+                            <div class="detalhe-item"><span>Em aprovação:</span><span>${requisicoesEmAprovacaoCG} pendentes</span></div>
                         </div>
                     </div>
                     
                     <div class="fase-card dg" onclick="filtrarPorStatus('em_validacao_director')">
                         <div class="fase-header">
-                            <div class="fase-titulo"><i class="fas fa-user-tie"></i> Fase Director Geral</div>
-                            <div class="fase-tempo ${mediaDir > 0 ? 'tempo-positivo' : ''}">${formatarTempo(mediaDir)}</div>
+                            <div class="fase-titulo"><i class="fas fa-user-tie"></i> Fase Director</div>
+                            <div class="fase-tempo">${formatarTempo(mediaDir)}</div>
                         </div>
                         <div class="grafico-barra">
                             <div class="grafico-barra-fill" style="width: ${(mediaDir / maxTempo) * 100}%; background: #f44336;">
@@ -3153,25 +3282,16 @@
                             </div>
                         </div>
                         <div class="fase-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Tempo médio:</span>
-                                <span class="detalhe-valor">${formatarTempo(mediaDir)}</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Total analisado:</span>
-                                <span class="detalhe-valor">${countDir} requisições</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Em aprovação agora:</span>
-                                <span class="detalhe-valor">${requisicoesEmAprovacaoDir} pendentes</span>
-                            </div>
+                            <div class="detalhe-item"><span>Tempo médio:</span><span>${formatarTempo(mediaDir)}</span></div>
+                            <div class="detalhe-item"><span>Total analisado:</span><span>${countDir} requisições</span></div>
+                            <div class="detalhe-item"><span>Em aprovação:</span><span>${requisicoesEmAprovacaoDir} pendentes</span></div>
                         </div>
                     </div>
                     
                     <div class="fase-card recrutamento" onclick="filtrarPorStatus('em_recrutamento')">
                         <div class="fase-header">
-                            <div class="fase-titulo"><i class="fas fa-user-graduate"></i> Fase Recrutamento</div>
-                            <div class="fase-tempo ${mediaRecrutamento > 0 ? 'tempo-positivo' : ''}">${formatarTempo(mediaRecrutamento)}</div>
+                            <div class="fase-titulo"><i class="fas fa-user-graduate"></i> Recrutamento</div>
+                            <div class="fase-tempo">${formatarTempo(mediaRecrutamento)}</div>
                         </div>
                         <div class="grafico-barra">
                             <div class="grafico-barra-fill" style="width: ${(mediaRecrutamento / maxTempo) * 100}%; background: #2196F3;">
@@ -3179,18 +3299,9 @@
                             </div>
                         </div>
                         <div class="fase-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Tempo médio:</span>
-                                <span class="detalhe-valor">${formatarTempo(mediaRecrutamento)}</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Total analisado:</span>
-                                <span class="detalhe-valor">${countRecrutamento} requisições</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Em recrutamento agora:</span>
-                                <span class="detalhe-valor">${requisicoesEmRecrutamento} ativas</span>
-                            </div>
+                            <div class="detalhe-item"><span>Tempo médio:</span><span>${formatarTempo(mediaRecrutamento)}</span></div>
+                            <div class="detalhe-item"><span>Total analisado:</span><span>${countRecrutamento} requisições</span></div>
+                            <div class="detalhe-item"><span>Em recrutamento:</span><span>${requisicoesEmRecrutamento} ativas</span></div>
                         </div>
                     </div>
                 </div>
@@ -3202,7 +3313,6 @@
             if (!container) return;
             
             const todasRequisicoes = requisicoes;
-            
             const totalRequisicoes = todasRequisicoes.length;
             
             const statusCounts = {
@@ -3222,201 +3332,57 @@
             container.innerHTML = `
                 <div class="status-detalhado-container">
                     <div class="status-card rh" onclick="filtrarPorStatus('em_validacao_rh')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-user-tie"></i> Em Validação RH</div>
-                            <div class="status-quantidade" style="color: #4CAF50;">${statusCounts.em_validacao_rh}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.em_validacao_rh / maxCount) * 100}%; background: #4CAF50;">
-                                ${statusCounts.em_validacao_rh > 0 ? statusCounts.em_validacao_rh : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.em_validacao_rh / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Aguardando aprovação:</span>
-                                <span class="detalhe-valor">${statusCounts.em_validacao_rh} requisições</span>
-                            </div>
-                        </div>
+                        <div class="status-header"><div class="status-titulo">Em Validação RH</div><div class="status-quantidade" style="color:#4CAF50;">${statusCounts.em_validacao_rh}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.em_validacao_rh / maxCount) * 100}%; background:#4CAF50;">${statusCounts.em_validacao_rh || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.em_validacao_rh / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                     
                     <div class="status-card cg" onclick="filtrarPorStatus('em_validacao_financas')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-chart-line"></i> Em Validação CG</div>
-                            <div class="status-quantidade" style="color: #FF9800;">${statusCounts.em_validacao_financas}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.em_validacao_financas / maxCount) * 100}%; background: #FF9800;">
-                                ${statusCounts.em_validacao_financas > 0 ? statusCounts.em_validacao_financas : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.em_validacao_financas / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Aguardando aprovação:</span>
-                                <span class="detalhe-valor">${statusCounts.em_validacao_financas} requisições</span>
-                            </div>
-                        </div>
+                        <div class="status-header"><div class="status-titulo">Em Validação CG</div><div class="status-quantidade" style="color:#FF9800;">${statusCounts.em_validacao_financas}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.em_validacao_financas / maxCount) * 100}%; background:#FF9800;">${statusCounts.em_validacao_financas || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.em_validacao_financas / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                     
                     <div class="status-card dg" onclick="filtrarPorStatus('em_validacao_director')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-user-tie"></i> Em Validação Director</div>
-                            <div class="status-quantidade" style="color: #f44336;">${statusCounts.em_validacao_director}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.em_validacao_director / maxCount) * 100}%; background: #f44336;">
-                                ${statusCounts.em_validacao_director > 0 ? statusCounts.em_validacao_director : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.em_validacao_director / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Aguardando aprovação:</span>
-                                <span class="detalhe-valor">${statusCounts.em_validacao_director} requisições</span>
-                            </div>
-                        </div>
+                        <div class="status-header"><div class="status-titulo">Em Validação Director</div><div class="status-quantidade" style="color:#f44336;">${statusCounts.em_validacao_director}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.em_validacao_director / maxCount) * 100}%; background:#f44336;">${statusCounts.em_validacao_director || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.em_validacao_director / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                     
                     <div class="status-card aprovada" onclick="filtrarPorStatus('aprovada')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-check-circle"></i> Aprovadas</div>
-                            <div class="status-quantidade" style="color: #4CAF50;">${statusCounts.aprovada}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.aprovada / maxCount) * 100}%; background: #4CAF50;">
-                                ${statusCounts.aprovada > 0 ? statusCounts.aprovada : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.aprovada / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Aguardando recrutamento:</span>
-                                <span class="detalhe-valor">${statusCounts.aprovada} requisições</span>
-                            </div>
-                        </div>
+                        <div class="status-header"><div class="status-titulo">Aprovadas</div><div class="status-quantidade" style="color:#4CAF50;">${statusCounts.aprovada}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.aprovada / maxCount) * 100}%; background:#4CAF50;">${statusCounts.aprovada || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.aprovada / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                     
                     <div class="status-card recrutamento" onclick="filtrarPorStatus('em_recrutamento')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-user-graduate"></i> Em Recrutamento</div>
-                            <div class="status-quantidade" style="color: #2196F3;">${statusCounts.em_recrutamento}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.em_recrutamento / maxCount) * 100}%; background: #2196F3;">
-                                ${statusCounts.em_recrutamento > 0 ? statusCounts.em_recrutamento : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.em_recrutamento / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Processos ativos:</span>
-                                <span class="detalhe-valor">${statusCounts.em_recrutamento} requisições</span>
-                            </div>
-                        </div>
+                        <div class="status-header"><div class="status-titulo">Em Recrutamento</div><div class="status-quantidade" style="color:#2196F3;">${statusCounts.em_recrutamento}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.em_recrutamento / maxCount) * 100}%; background:#2196F3;">${statusCounts.em_recrutamento || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.em_recrutamento / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                     
-                    <div class="status-card" style="border-left-color: #9c27b0;" onclick="filtrarPorStatus('aguardando_confirmacao_solicitante')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-envelope-open-text"></i> Aguardando Confirmação</div>
-                            <div class="status-quantidade" style="color: #9c27b0;">${statusCounts.aguardando_confirmacao_solicitante}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.aguardando_confirmacao_solicitante / maxCount) * 100}%; background: #9c27b0;">
-                                ${statusCounts.aguardando_confirmacao_solicitante > 0 ? statusCounts.aguardando_confirmacao_solicitante : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.aguardando_confirmacao_solicitante / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Aguardando confirmação:</span>
-                                <span class="detalhe-valor">${statusCounts.aguardando_confirmacao_solicitante} requisições</span>
-                            </div>
-                        </div>
+                    <div class="status-card" style="border-left-color:#9c27b0;" onclick="filtrarPorStatus('aguardando_confirmacao_solicitante')">
+                        <div class="status-header"><div class="status-titulo">Aguardando Confirmação</div><div class="status-quantidade" style="color:#9c27b0;">${statusCounts.aguardando_confirmacao_solicitante}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.aguardando_confirmacao_solicitante / maxCount) * 100}%; background:#9c27b0;">${statusCounts.aguardando_confirmacao_solicitante || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.aguardando_confirmacao_solicitante / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                     
                     <div class="status-card concluida" onclick="filtrarPorStatus('concluida')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-check-double"></i> Concluídas</div>
-                            <div class="status-quantidade" style="color: #607d8b;">${statusCounts.concluida}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.concluida / maxCount) * 100}%; background: #607d8b;">
-                                ${statusCounts.concluida > 0 ? statusCounts.concluida : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.concluida / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Processos finalizados:</span>
-                                <span class="detalhe-valor">${statusCounts.concluida} requisições</span>
-                            </div>
-                        </div>
+                        <div class="status-header"><div class="status-titulo">Concluídas</div><div class="status-quantidade" style="color:#607d8b;">${statusCounts.concluida}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.concluida / maxCount) * 100}%; background:#607d8b;">${statusCounts.concluida || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.concluida / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                     
                     <div class="status-card rejeitada" onclick="filtrarPorStatus('rejeitada')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-times-circle"></i> Rejeitadas</div>
-                            <div class="status-quantidade" style="color: #f44336;">${statusCounts.rejeitada}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.rejeitada / maxCount) * 100}%; background: #f44336;">
-                                ${statusCounts.rejeitada > 0 ? statusCounts.rejeitada : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.rejeitada / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Taxa de rejeição:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.rejeitada / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                        </div>
+                        <div class="status-header"><div class="status-titulo">Rejeitadas</div><div class="status-quantidade" style="color:#f44336;">${statusCounts.rejeitada}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.rejeitada / maxCount) * 100}%; background:#f44336;">${statusCounts.rejeitada || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.rejeitada / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                     
                     <div class="status-card devolvida" onclick="filtrarPorStatus('devolvida_solicitante')">
-                        <div class="status-header">
-                            <div class="status-titulo"><i class="fas fa-undo-alt"></i> Devolvidas</div>
-                            <div class="status-quantidade" style="color: #ff9800;">${statusCounts.devolvida_solicitante}</div>
-                        </div>
-                        <div class="grafico-barra">
-                            <div class="grafico-barra-fill" style="width: ${(statusCounts.devolvida_solicitante / maxCount) * 100}%; background: #ff9800;">
-                                ${statusCounts.devolvida_solicitante > 0 ? statusCounts.devolvida_solicitante : ''}
-                            </div>
-                        </div>
-                        <div class="status-detalhes">
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Percentual:</span>
-                                <span class="detalhe-valor">${totalRequisicoes > 0 ? ((statusCounts.devolvida_solicitante / totalRequisicoes) * 100).toFixed(1) : 0}%</span>
-                            </div>
-                            <div class="detalhe-item">
-                                <span class="detalhe-label">Aguardando correção:</span>
-                                <span class="detalhe-valor">${statusCounts.devolvida_solicitante} requisições</span>
-                            </div>
-                        </div>
+                        <div class="status-header"><div class="status-titulo">Devolvidas</div><div class="status-quantidade" style="color:#ff9800;">${statusCounts.devolvida_solicitante}</div></div>
+                        <div class="grafico-barra"><div class="grafico-barra-fill" style="width: ${(statusCounts.devolvida_solicitante / maxCount) * 100}%; background:#ff9800;">${statusCounts.devolvida_solicitante || ''}</div></div>
+                        <div class="status-detalhes"><div class="detalhe-item"><span>Percentual:</span><span>${totalRequisicoes > 0 ? ((statusCounts.devolvida_solicitante / totalRequisicoes) * 100).toFixed(1) : 0}%</span></div></div>
                     </div>
                 </div>
             `;
@@ -3432,8 +3398,6 @@
                 document.getElementById('systemTitle').textContent = 'Kero Recrutamento';
                 inicializarDirecoes();
                 carregarRequisicoesDoSharePoint();
-                carregarDashboardTempos();
-                carregarDashboardStatus();
                 carregarDirecoes();
                 carregarConfiguracoes();
                 inicializarGraficos();
@@ -3479,11 +3443,7 @@
             }
             
             tbody.innerHTML = utilizadoresUnicos.map(u => `
-                <tr>
-                    <td>${u.nome || 'N/A'}</td>
-                    <td>${u.email}</td>
-                    <td><span class="status-badge" style="background: var(--primary); color: white;">${u.perfil}</span></td>
-                </tr>
+                <tr><td>${u.nome || 'N/A'}</td><td>${u.email}</td><td><span class="status-badge" style="background: var(--primary); color: white;">${u.perfil}</span></td></tr>
             `).join('');
         }
 
@@ -3502,11 +3462,12 @@
             const sel = document.getElementById('direcao');
             const filtro = document.getElementById('filterDirecao');
             const editSel = document.getElementById('editDirecao');
+            const areaSel = document.getElementById('area');
             const editArea = document.getElementById('editArea');
+            
             if (sel) { sel.innerHTML = '<option value="">Selecione</option>'; todasDirecoes.forEach(d => sel.appendChild(new Option(d, d))); }
             if (filtro) { filtro.innerHTML = '<option value="all">Todas</option>'; todasDirecoes.forEach(d => filtro.appendChild(new Option(d, d))); }
             if (editSel) { editSel.innerHTML = '<option value="">Selecione</option>'; todasDirecoes.forEach(d => editSel.appendChild(new Option(d, d))); }
-            const areaSel = document.getElementById('area');
             if (areaSel) { areaSel.innerHTML = '<option value="">Selecione</option>'; todasCategorias.forEach(c => areaSel.appendChild(new Option(c, c))); }
             if (editArea) { editArea.innerHTML = '<option value="">Selecione</option>'; todasCategorias.forEach(c => editArea.appendChild(new Option(c, c))); }
         }
@@ -3563,19 +3524,20 @@
         function carregarRequisicoes() {
             const tbody = document.getElementById('corpoTabela');
             if (!tbody) return;
-            if (requisicoesFiltradas.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma requisição encontrada</span></td>'; return; }
+            if (requisicoesFiltradas.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Nenhuma requisição encontrada</td></tr>'; return; }
             const inicio = (estado.paginaAtual - 1) * estado.itensPorPagina;
             const itens = requisicoesFiltradas.slice(inicio, inicio + estado.itensPorPagina);
             tbody.innerHTML = itens.map(r => {
                 const temEdicao = r.historicoComentarios && r.historicoComentarios.some(h => h.acao === 'edicao');
+                const temAnexos = r.ficheiros && r.ficheiros.length > 0;
                 return `<tr onclick="visualizarRequisicao('${r.id}')">
-                    <td>${r.codigo} ${r.ficheiros && r.ficheiros.length > 0 ? '<i class="fas fa-paperclip" style="color: var(--primary); margin-left: 5px;"></i>' : ''} ${temEdicao ? '<span class="edit-badge" data-tooltip="Esta requisição foi editada"></span>' : ''}</td>
+                    <td>${r.codigo} ${temAnexos ? '<i class="fas fa-paperclip" style="color: var(--primary); margin-left: 5px;"></i>' : ''} ${temEdicao ? '<span class="edit-badge"></span>' : ''}</td>
                     <td>${r.funcao}</td>
                     <td>${r.direcao}</td>
                     <td><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></td>
-                    <td>${getTipoBadge(r.tipo)}</span></td>
-                    <td>${formatarData(r.dataInicio)}</span></td>
-                    <td><div class="action-buttons">${getBotoesAcao(r)}</div></span>
+                    <td>${getTipoBadge(r.tipo)}</td>
+                    <td>${formatarData(r.dataInicio)}</td>
+                    <td><div class="action-buttons">${getBotoesAcao(r)}</div></td>
                 </tr>`;
             }).join('');
             const total = Math.ceil(requisicoesFiltradas.length / estado.itensPorPagina);
@@ -3594,7 +3556,7 @@
             
             if (usuarioAtual.perfil === 'Administrador' && req.status === 'aprovada' && !req.dataInicioRecrutamento) {
                 botoes += `<button class="btn-small btn-approve" onclick="event.stopPropagation();iniciarRecrutamentoManual('${req.id}')" style="background-color:#9c27b0;">
-                    <i class="fas fa-play-circle"></i> Iniciar Recrutamento
+                    <i class="fas fa-play-circle"></i> Iniciar
                 </button>`;
             }
             
@@ -3620,7 +3582,7 @@
         function editarRequisicao(id) {
             const req = requisicoes.find(r => r.id == id);
             if (!req) { mostrarNotificacao('Requisição não encontrada', 'error'); return; }
-            if (!podeEditarRequisicao(req)) { mostrarNotificacao('Não tem permissão para editar esta requisição', 'error'); return; }
+            if (!podeEditarRequisicao(req)) { mostrarNotificacao('Sem permissão para editar', 'error'); return; }
             document.getElementById('editRequisicaoId').value = req.id;
             document.getElementById('editFuncao').value = req.funcao;
             document.getElementById('editDirecao').value = req.direcao;
@@ -3644,7 +3606,6 @@
             const id = document.getElementById('editRequisicaoId').value;
             const req = requisicoes.find(r => r.id == id);
             if (!req) { mostrarNotificacao('Requisição não encontrada', 'error'); return; }
-            if (!podeEditarRequisicao(req)) { mostrarNotificacao('Não tem permissão para editar esta requisição', 'error'); return; }
             showLoading();
             const alteracoes = [];
             if (req.funcao !== document.getElementById('editFuncao').value) { alteracoes.push(`Função: "${req.funcao}" → "${document.getElementById('editFuncao').value}"`); req.funcao = document.getElementById('editFuncao').value; }
@@ -3657,22 +3618,21 @@
             if (req.tipo === 'reforco_quadro') { req.justificativaReforco = document.getElementById('editJustificativaReforco').value; }
             if (alteracoes.length > 0) {
                 if (!req.historicoComentarios) req.historicoComentarios = [];
-                req.historicoComentarios.unshift({ id: Date.now().toString(), acao: 'edicao', usuario: usuarioAtual.nome, perfil: usuarioAtual.perfil, comentario: `Requisição editada por ${usuarioAtual.nome}. Alterações: ${alteracoes.join(', ')}`, data: new Date().toISOString(), statusAnterior: req.status, statusNovo: req.status });
+                req.historicoComentarios.unshift({ id: Date.now().toString(), acao: 'edicao', usuario: usuarioAtual.nome, perfil: usuarioAtual.perfil, comentario: `Editada por ${usuarioAtual.nome}. Alterações: ${alteracoes.join(', ')}`, data: new Date().toISOString() });
             }
-            const statusAntesEdicao = req.status;
+            const statusAntes = req.status;
             const atualizado = await atualizarRequisicaoNoSharePoint(req);
             if (atualizado) {
                 await salvarHistoricoNoSharePoint(req);
-                if (statusAntesEdicao === 'devolvida_solicitante' && usuarioAtual.email === req.criadoPorEmail) {
+                if (statusAntes === 'devolvida_solicitante' && usuarioAtual.email === req.criadoPorEmail) {
                     req.status = 'em_validacao_rh';
                     await atualizarRequisicaoNoSharePoint(req);
                     await enviarEmail(emailsAprovadores['RH'], `Requisição Reenviada - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, "Reenviada após correções", "RH"));
-                    await enviarNotificacaoTeams(`🔄 Requisição Reenviada: ${req.codigo}`, `A requisição foi corrigida e reenviada por ${usuarioAtual.nome}. Aguarda aprovação do RH.`, '2196F3');
-                    mostrarNotificacao(`Requisição ${req.codigo} reenviada para aprovação do RH!`, 'success');
+                    mostrarNotificacao(`Requisição ${req.codigo} reenviada!`, 'success');
                 } else {
                     mostrarNotificacao('Requisição editada com sucesso!', 'success');
                 }
-                if (alteracoes.length > 0) { await enviarEmail(req.criadoPorEmail, `Requisição ${req.codigo} foi editada por ${usuarioAtual.nome}`, templateEdicao(req, alteracoes.join(', '))); }
+                if (alteracoes.length > 0) { await enviarEmail(req.criadoPorEmail, `Requisição ${req.codigo} foi editada`, templateEdicao(req, alteracoes.join(', '))); }
                 fecharModal('modalEditarRequisicao');
                 filtrarRequisicoes();
                 carregarAprovacoes();
@@ -3722,7 +3682,7 @@
             if (!req) { mostrarNotificacao('Requisição não encontrada', 'error'); return; }
             
             if ((acao === 'rejeitar' || acao === 'devolver') && !coment.trim()) {
-                mostrarNotificacao('Comentário obrigatório para rejeição ou devolução!', 'error');
+                mostrarNotificacao('Comentário obrigatório!', 'error');
                 return;
             }
 
@@ -3732,13 +3692,39 @@
 
             try {
                 if (acao === 'devolver') {
-                    await processarDevolucao(req, coment);
-                } else if (acao === 'aprovar') {
-                    if (utilizadorJaAprovou(req)) { mostrarNotificacao('Você já aprovou esta requisição anteriormente!', 'warning'); return; }
-                    if (!podeAprovarStatus(req)) { mostrarNotificacao('Você não tem permissão para aprovar esta requisição no estado atual!', 'error'); return; }
-                    if (req.criadoPorEmail === usuarioAtual.email) { mostrarNotificacao('Não pode aprovar uma requisição que você mesmo criou!', 'error'); return; }
+                    let novoStatus = req.status;
+                    let destinatarioEmail = '';
+                    let destinatarioPerfil = '';
+                    if (req.status === 'em_validacao_rh') {
+                        novoStatus = 'devolvida_solicitante';
+                        destinatarioEmail = req.criadoPorEmail;
+                        destinatarioPerfil = 'Solicitante';
+                    } else if (req.status === 'em_validacao_financas') {
+                        novoStatus = 'em_validacao_rh';
+                        destinatarioEmail = emailsAprovadores['RH'];
+                        destinatarioPerfil = 'RH';
+                    } else if (req.status === 'em_validacao_director') {
+                        novoStatus = 'em_validacao_financas';
+                        destinatarioEmail = emailsAprovadores['Controlo de Gestão'];
+                        destinatarioPerfil = 'Controlo de Gestão';
+                    } else {
+                        mostrarNotificacao('Não é possível devolver', 'warning');
+                        return;
+                    }
+
+                    adicionarAoHistorico(req, 'devolver', coment);
+                    req.status = novoStatus;
+                    await atualizarRequisicaoNoSharePoint(req);
+                    await salvarHistoricoNoSharePoint(req);
+                    await enviarEmail(destinatarioEmail, `Requisição Devolvida - ${req.codigo}`, templateDevolucao(req, usuarioAtual.nome, coment, destinatarioPerfil));
+                    mostrarNotificacao(`Requisição devolvida para ${destinatarioPerfil}!`, 'warning');
                     
-                    adicionarAoHistorico(req, acao, coment || 'Aprovado sem comentários');
+                } else if (acao === 'aprovar') {
+                    if (utilizadorJaAprovou(req)) { mostrarNotificacao('Você já aprovou esta requisição!', 'warning'); return; }
+                    if (!podeAprovarStatus(req)) { mostrarNotificacao('Sem permissão para aprovar!', 'error'); return; }
+                    if (req.criadoPorEmail === usuarioAtual.email) { mostrarNotificacao('Não pode aprovar sua própria requisição!', 'error'); return; }
+                    
+                    adicionarAoHistorico(req, acao, coment || 'Aprovado');
                     await salvarHistoricoNoSharePoint(req);
                     
                     let novoStatus = '';
@@ -3750,35 +3736,28 @@
                         emailDestinatario = emailsAprovadores['Controlo de Gestão'];
                         proximoStatusTexto = 'Controlo de Gestão';
                         await enviarEmail(emailDestinatario, `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, proximoStatusTexto));
-                        mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo RH!`, 'success');
+                        mostrarNotificacao(`Requisição aprovada pelo RH!`, 'success');
                     } else if (req.status === 'em_validacao_financas') {
                         novoStatus = 'em_validacao_director';
                         emailDestinatario = emailsAprovadores['Director Geral'];
                         proximoStatusTexto = 'Director Geral';
                         await enviarEmail(emailDestinatario, `Requisição para Aprovação - ${req.codigo}`, templateAprovacao(req, usuarioAtual.nome, coment, proximoStatusTexto));
-                        mostrarNotificacao(`Requisição ${req.codigo} aprovada pelo CG!`, 'success');
+                        mostrarNotificacao(`Requisição aprovada pelo CG!`, 'success');
                     } else if (req.status === 'em_validacao_director') {
                         novoStatus = 'em_recrutamento';
                         req.dataInicioRecrutamento = new Date().toISOString();
                         
-                        adicionarAoHistorico(req, 'inicio_recrutamento', `Recrutamento iniciado automaticamente após aprovação do Director por ${usuarioAtual.nome}`);
+                        adicionarAoHistorico(req, 'inicio_recrutamento', `Recrutamento iniciado automaticamente`);
                         
-                        const todosEmails = [
-                            req.criadoPorEmail,
-                            emailsAprovadores['RH'],
-                            emailsAprovadores['Recrutador'],
-                            configuracoes.emailAdmin
-                        ].filter((v,i,a)=>a.indexOf(v)===i);
-                        for (const email of todosEmails) {
-                            await enviarEmail(email, `Requisição Aprovada - Recrutamento Iniciado - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment));
+                        const todosEmails = [req.criadoPorEmail, emailsAprovadores['RH'], emailsAprovadores['Recrutador'], configuracoes.emailAdmin];
+                        for (const email of [...new Set(todosEmails)]) {
+                            await enviarEmail(email, `Requisição Aprovada - ${req.codigo}`, templateAprovacaoFinal(req, usuarioAtual.nome, coment));
                         }
-                        await enviarNotificacaoTeams(`✅ Requisição Aprovada: ${req.codigo}`, `A requisição ${req.funcao} foi aprovada por ${usuarioAtual.nome}. Recrutamento iniciado automaticamente.`, '4CAF50');
-                        mostrarNotificacao(`Requisição ${req.codigo} APROVADA e recrutamento iniciado automaticamente!`, 'success');
+                        mostrarNotificacao(`Requisição APROVADA e recrutamento iniciado!`, 'success');
                     }
                     
                     req.status = novoStatus;
-                    const atualizado = await atualizarRequisicaoNoSharePoint(req);
-                    if (!atualizado) throw new Error('Falha ao salvar no SharePoint');
+                    await atualizarRequisicaoNoSharePoint(req);
                     
                 } else if (acao === 'rejeitar') {
                     adicionarAoHistorico(req, acao, coment);
@@ -3786,7 +3765,7 @@
                     req.status = 'rejeitada';
                     await atualizarRequisicaoNoSharePoint(req);
                     await enviarEmail(req.criadoPorEmail, `Requisição Rejeitada - ${req.codigo}`, templateRejeicao(req, usuarioAtual.nome, coment));
-                    mostrarNotificacao(`Requisição ${req.codigo} REJEITADA!`, 'warning');
+                    mostrarNotificacao(`Requisição REJEITADA!`, 'warning');
                 }
                 
                 fecharModal('modalComentario');
@@ -3807,100 +3786,6 @@
             }
         }
 
-        async function processarDevolucao(req, comentario) {
-            if (!podeDevolverRequisicao(req)) { mostrarNotificacao('Não tem permissão para devolver esta requisição!', 'error'); return; }
-
-            let novoStatus = req.status;
-            let destinatarioEmail = '';
-            let destinatarioPerfil = '';
-            if (req.status === 'em_validacao_rh') {
-                novoStatus = 'devolvida_solicitante';
-                destinatarioEmail = req.criadoPorEmail;
-                destinatarioPerfil = 'Solicitante';
-            } else if (req.status === 'em_validacao_financas') {
-                novoStatus = 'em_validacao_rh';
-                destinatarioEmail = emailsAprovadores['RH'];
-                destinatarioPerfil = 'RH';
-            } else if (req.status === 'em_validacao_director') {
-                novoStatus = 'em_validacao_financas';
-                destinatarioEmail = emailsAprovadores['Controlo de Gestão'];
-                destinatarioPerfil = 'Controlo de Gestão';
-            } else {
-                mostrarNotificacao('Não é possível devolver esta requisição no estado atual', 'warning');
-                return;
-            }
-
-            adicionarAoHistorico(req, 'devolver', comentario);
-            req.status = novoStatus;
-            await atualizarRequisicaoNoSharePoint(req);
-            await salvarHistoricoNoSharePoint(req);
-
-            await enviarEmail(destinatarioEmail, `Requisição Devolvida para Correção - ${req.codigo}`, templateDevolucao(req, usuarioAtual.nome, comentario, destinatarioPerfil));
-            await enviarNotificacaoTeams(`🔄 Requisição Devolvida: ${req.codigo}`, `A requisição foi devolvida por ${usuarioAtual.nome} para ${destinatarioPerfil}. Motivo: ${comentario}`, 'ff9800');
-            adicionarNotificacao('Requisição Devolvida', `A requisição ${req.codigo} foi devolvida para ${destinatarioPerfil} para correção.`, 'warning', req.id);
-
-            mostrarNotificacao(`Requisição ${req.codigo} devolvida para ${destinatarioPerfil}!`, 'warning');
-        }
-
-        function gerarVisualizadorFicheiro(ficheiro) {
-            const url = ficheiro.downloadUrl || ficheiro.url || ficheiro.webUrl;
-            if (!url) return '<div class="ficheiro-preview-unavailable"><i class="fas fa-exclamation-triangle"></i><p>URL não disponível</p></div>';
-            if (ficheiro.tipo && ficheiro.tipo.startsWith('image/')) return `<div class="ficheiro-preview-image"><img src="${url}" alt="${ficheiro.nome}" style="max-width:100%;max-height:500px;border-radius:8px;"></div>`;
-            if (ficheiro.tipo === 'application/pdf') return `<iframe src="${url}" class="ficheiro-preview-pdf"></iframe>`;
-            if (ficheiro.tipo && (ficheiro.tipo.includes('word') || ficheiro.tipo.includes('excel') || ficheiro.tipo.includes('powerpoint'))) return `<iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}" class="ficheiro-preview-office"></iframe>`;
-            if (ficheiro.tipo && ficheiro.tipo.startsWith('text/')) return `<iframe src="${url}" class="ficheiro-preview-text"></iframe>`;
-            return `<div class="ficheiro-preview-unavailable"><i class="fas fa-file"></i><h4>Pré-visualização não disponível</h4><button class="btn-download" onclick="baixarFicheiro('${url}','${ficheiro.nome}')"><i class="fas fa-download"></i> Download</button></div>`;
-        }
-
-        function mostrarFicheiro(reqId, index) {
-            const ficheiros = window[`ficheiros_${reqId}`];
-            if (!ficheiros || !ficheiros[index]) return;
-            const ficheiro = ficheiros[index];
-            const viewerDiv = document.getElementById(`ficheiroViewer_${reqId}`);
-            if (viewerDiv) viewerDiv.innerHTML = gerarVisualizadorFicheiro(ficheiro);
-            const nomeSpan = document.getElementById(`ficheiroNome_${reqId}`);
-            if (nomeSpan) nomeSpan.textContent = ficheiro.nome;
-            const metaSpan = document.querySelector(`#ficheiroInfo_${reqId} .ficheiro-meta`);
-            if (metaSpan) metaSpan.innerHTML = `${formatarTamanho(ficheiro.tamanho)} • ${formatarData(ficheiro.dataUpload)}`;
-            const actionsDiv = document.querySelector(`#ficheiroInfo_${reqId} .ficheiro-actions`);
-            if (actionsDiv) {
-                const downloadUrl = ficheiro.downloadUrl || ficheiro.url || ficheiro.webUrl;
-                actionsDiv.innerHTML = `<button class="btn-download" onclick="baixarFicheiro('${downloadUrl}', '${ficheiro.nome}')"><i class="fas fa-download"></i> Download</button><button class="btn-sharepoint" onclick="window.open('${ficheiro.webUrl || ficheiro.url}', '_blank')"><i class="fas fa-external-link-alt"></i> Abrir no SharePoint</button>`;
-            }
-            const tabs = document.querySelectorAll(`#ficheiroTabs_${reqId} .ficheiro-tab`);
-            tabs.forEach((tab, i) => { tab.classList.toggle('active', i === index); });
-        }
-
-        function baixarFicheiro(url, nome) {
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = nome;
-            a.target = '_blank';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            mostrarNotificacao(`Download de "${nome}" iniciado!`, 'success');
-        }
-
-        function exportarRequisicaoIndividual() {
-            if (!requisicaoVisualizarAtual) { mostrarNotificacao('Nenhuma requisição selecionada', 'warning'); return; }
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const req = requisicaoVisualizarAtual;
-            doc.setFontSize(18);
-            doc.setTextColor(46, 125, 50);
-            doc.text(`Requisição ${req.codigo}`, 14, 20);
-            doc.setFontSize(11);
-            doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-PT')}`, 14, 30);
-            const body = [['Código', req.codigo], ['Função', req.funcao], ['Direção', req.direcao], ['Categoria', req.area], ['Quantidade', req.quantidade.toString()], ['Status', getStatusText(req.status)], ['Data Início', formatarData(req.dataInicio)], ['Solicitante', req.criadoPor || 'N/A'], ['Data Criação', formatarDataHora(req.dataCriacao)], ['Observações', req.observacoes || 'N/A']];
-            if (req.dataInicioRecrutamento) body.push(['Início Recrutamento', formatarDataHora(req.dataInicioRecrutamento)]);
-            if (req.dataFimRecrutamento) body.push(['Fim Recrutamento', formatarDataHora(req.dataFimRecrutamento)]);
-            if (req.dataInicioRecrutamento) body.push(['Tempo em Recrutamento', formatarTempo(calcularTempoRecrutamento(req)) || 'N/A']);
-            doc.autoTable({ startY: 40, body: body, styles: { fontSize: 10, cellPadding: 4 }, columnStyles: { 0: { fontStyle: 'bold', textColor: [46, 125, 50] } } });
-            doc.save(`requisicao_${req.codigo}.pdf`);
-            mostrarNotificacao('PDF da requisição exportado!', 'success');
-        }
-
         function visualizarRequisicao(id) {
             const req = requisicoes.find(r => r.id == id);
             if (!req) { mostrarNotificacao('Requisição não encontrada', 'error'); return; }
@@ -3910,12 +3795,10 @@
 
             let infoRecrutamento = '';
             if (req.dataInicioRecrutamento) {
-                const inicioHistorico = req.historicoComentarios?.find(h => h.acao === 'inicio_recrutamento' || h.acao === 'inicio_recrutamento_manual');
-                const tipoInicio = inicioHistorico?.acao === 'inicio_recrutamento_manual' ? ' (Iniciado Manualmente pelo Administrador)' : ' (Iniciado Automaticamente)';
                 infoRecrutamento = `<div style="margin-top:10px; padding:10px; background: #e3f2fd; border-radius: 8px;">
-                    <strong><i class="fas fa-info-circle"></i> Informação do Recrutamento:</strong>
-                    <div>Data de início: ${formatarDataHora(req.dataInicioRecrutamento)}${tipoInicio}</div>
-                    ${inicioHistorico?.comentario ? `<div>Observação: ${inicioHistorico.comentario}</div>` : ''}
+                    <strong>Informação do Recrutamento:</strong>
+                    <div>Data de início: ${formatarDataHora(req.dataInicioRecrutamento)}</div>
+                    ${req.dataFimRecrutamento ? `<div>Data de fim: ${formatarDataHora(req.dataFimRecrutamento)}</div>` : ''}
                 </div>`;
             }
 
@@ -3931,25 +3814,20 @@
                         <div style="margin-bottom:15px;"><strong>Observações:</strong> ${req.observacoes || 'N/A'}</div>`;
             
             if (req.tipo === 'substituicao') html += `<div><strong>Colaborador a Substituir:</strong> ${req.colaboradorSubstituir || 'N/A'}</div><div><strong>Motivo:</strong> ${req.motivoSubstituicao || 'N/A'}</div>`;
-            if (req.tipo === 'reforco_quadro') html += `<div><strong>Justificativa do Reforço:</strong> ${req.justificativaReforco || 'N/A'}</div>`;
+            if (req.tipo === 'reforco_quadro') html += `<div><strong>Justificativa:</strong> ${req.justificativaReforco || 'N/A'}</div>`;
             
             html += infoRecrutamento;
-            
-            if (req.dataInicioRecrutamento) {
-                if (req.dataFimRecrutamento) html += `<div><strong>Data Fim Recrutamento:</strong> ${formatarDataHora(req.dataFimRecrutamento)}</div>`;
-                html += `<div><strong>Tempo em Recrutamento:</strong> ${formatarTempo(calcularTempoRecrutamento(req)) || 'N/A'}</div>`;
-            }
 
             if (usuarioAtual.perfil === 'Administrador' && req.status === 'aprovada' && !req.dataInicioRecrutamento) {
                 html += `<div style="margin-top:20px; text-align:center;">
                     <button class="btn-small btn-approve" onclick="iniciarRecrutamentoManual('${req.id}');fecharModal('modalVisualizar');" style="background-color:#9c27b0; padding: 10px 20px;">
-                        <i class="fas fa-play-circle"></i> Iniciar Recrutamento Manualmente
+                        <i class="fas fa-play-circle"></i> Iniciar Recrutamento
                     </button>
                 </div>`;
             }
 
             html += `<div style="margin-top:25px; padding-top:20px; border-top:2px solid var(--primary);">
-                        <h4 style="color: var(--primary-dark); margin-bottom:15px;"><i class="fas fa-hourglass-half"></i> Tempo por Fase de Aprovação Detalhado</h4>
+                        <h4 style="color: var(--primary-dark); margin-bottom:15px;">Tempo por Fase</h4>
                         <div class="tempos-fases-container" style="grid-template-columns: repeat(4, 1fr);">
                             <div class="fase-card rh" style="border-left-color: #4CAF50;">
                                 <div class="fase-header"><div class="fase-titulo">Fase RH</div><div class="fase-tempo">${formatarTempo(tempos.tempoRH)}</div></div>
@@ -3988,19 +3866,37 @@
             if (ficheiros.length > 0) {
                 window[`ficheiros_${req.id}`] = ficheiros;
                 const primeiro = ficheiros[0];
-                html += `<div class="ficheiros-section"><h4>Ficheiros (${ficheiros.length})</h4><div class="ficheiros-tabs" id="ficheiroTabs_${req.id}">`;
-                ficheiros.forEach((f, i) => { html += `<button class="ficheiro-tab ${i === 0 ? 'active' : ''}" onclick="mostrarFicheiro('${req.id}', ${i})"><i class="fas ${getIconePorTipo(f.tipo)}"></i> ${f.nome.length > 25 ? f.nome.substring(0, 25) + '...' : f.nome}</button>`; });
-                html += `</div><div class="ficheiro-viewer-container"><div class="ficheiro-viewer" id="ficheiroViewer_${req.id}">${gerarVisualizadorFicheiro(primeiro)}</div></div><div class="ficheiro-info-bar" id="ficheiroInfo_${req.id}"><div class="ficheiro-details"><span class="ficheiro-nome" id="ficheiroNome_${req.id}">${primeiro.nome}</span><span class="ficheiro-meta">${formatarTamanho(primeiro.tamanho)} • ${formatarData(primeiro.dataUpload)}</span></div><div class="ficheiro-actions"><button class="btn-download" onclick="baixarFicheiro('${primeiro.downloadUrl || primeiro.url}', '${primeiro.nome}')"><i class="fas fa-download"></i> Download</button><button class="btn-sharepoint" onclick="window.open('${primeiro.webUrl || primeiro.url}', '_blank')"><i class="fas fa-external-link-alt"></i> Abrir no SharePoint</button></div></div></div>`;
+                html += `<div class="ficheiros-section"><h4>Ficheiros Anexos (${ficheiros.length})</h4><div class="ficheiros-tabs" id="ficheiroTabs_${req.id}">`;
+                ficheiros.forEach((f, i) => { html += `<button class="ficheiro-tab ${i === 0 ? 'active' : ''}" onclick="mostrarFicheiro('${req.id}', ${i})"><i class="fas ${getIconePorTipo(f.tipo)}"></i> ${f.nome.length > 30 ? f.nome.substring(0, 30) + '...' : f.nome}</button>`; });
+                html += `</div><div class="ficheiro-viewer-container"><div class="ficheiro-viewer" id="ficheiroViewer_${req.id}">${gerarVisualizadorFicheiro(primeiro)}</div></div><div class="ficheiro-info-bar" id="ficheiroInfo_${req.id}"><div class="ficheiro-details"><span class="ficheiro-nome" id="ficheiroNome_${req.id}">${primeiro.nome}</span><span class="ficheiro-meta">${formatarTamanho(primeiro.tamanho)} • ${formatarData(primeiro.dataUpload)}</span></div><div class="ficheiro-actions"><button class="btn-download" onclick="baixarFicheiro('${primeiro.url || primeiro.downloadUrl}', '${primeiro.nome}')"><i class="fas fa-download"></i> Download</button><button class="btn-sharepoint" onclick="window.open('${primeiro.webUrl || primeiro.url}', '_blank')"><i class="fas fa-external-link-alt"></i> Abrir no SharePoint</button></div></div></div>`;
             }
             document.getElementById('conteudoModal').innerHTML = html;
             abrirModal('modalVisualizar');
+        }
+
+        function mostrarFicheiro(reqId, index) {
+            const ficheiros = window[`ficheiros_${reqId}`];
+            if (!ficheiros || !ficheiros[index]) return;
+            const ficheiro = ficheiros[index];
+            const viewerDiv = document.getElementById(`ficheiroViewer_${reqId}`);
+            if (viewerDiv) viewerDiv.innerHTML = gerarVisualizadorFicheiro(ficheiro);
+            const nomeSpan = document.getElementById(`ficheiroNome_${reqId}`);
+            if (nomeSpan) nomeSpan.textContent = ficheiro.nome;
+            const metaSpan = document.querySelector(`#ficheiroInfo_${reqId} .ficheiro-meta`);
+            if (metaSpan) metaSpan.innerHTML = `${formatarTamanho(ficheiro.tamanho)} • ${formatarData(ficheiro.dataUpload)}`;
+            const actionsDiv = document.querySelector(`#ficheiroInfo_${reqId} .ficheiro-actions`);
+            if (actionsDiv) {
+                actionsDiv.innerHTML = `<button class="btn-download" onclick="baixarFicheiro('${ficheiro.url || ficheiro.downloadUrl}', '${ficheiro.nome}')"><i class="fas fa-download"></i> Download</button><button class="btn-sharepoint" onclick="window.open('${ficheiro.webUrl || ficheiro.url}', '_blank')"><i class="fas fa-external-link-alt"></i> Abrir no SharePoint</button>`;
+            }
+            const tabs = document.querySelectorAll(`#ficheiroTabs_${reqId} .ficheiro-tab`);
+            tabs.forEach((tab, i) => { tab.classList.toggle('active', i === index); });
         }
 
         function carregarAprovacoes() {
             const tbody = document.getElementById('corpoAprovacoes');
             if (!tbody) return;
             if (!isAprovador()) { 
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores (RH, CG, Director, Admin)</span></tr>'; 
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Acesso restrito a aprovadores</td></tr>'; 
                 return; 
             }
             let pendentes = [];
@@ -4010,17 +3906,17 @@
             else if (usuarioAtual?.perfil === 'Director Geral') pendentes = requisicoes.filter(r => r.status === 'em_validacao_director');
             pendentes = pendentes.filter(r => !utilizadorJaAprovou(r) && r.criadoPorEmail !== usuarioAtual.email);
             if (pendentes.length === 0) { 
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente.</td></tr>'; 
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma aprovação pendente</td></tr>'; 
                 return; 
             }
             tbody.innerHTML = pendentes.map(r => `<tr onclick="visualizarRequisicao('${r.id}')">
-                <td>${r.codigo}${r.ficheiros && r.ficheiros.length > 0 ? ' 📎' : ''}${podeEditarRequisicao(r) ? '<span class="edit-badge" data-tooltip="Pode editar esta requisição"></span>' : ''}</span></td>
+                <td>${r.codigo}${r.ficheiros && r.ficheiros.length > 0 ? ' 📎' : ''}</span></td>
                 <td>${r.funcao}</td>
                 <td>${r.direcao}</td>
                 <td><span class="status-badge status-${r.status}">${getStatusText(r.status)}</span></td>
                 <td>${formatarData(r.dataCriacao)}</span>
                 <td><div class="action-buttons">${getBotoesAcao(r)}</div></span>
-             </tr>`).join('');
+              </tr>`).join('');
         }
 
         function atualizarKPIs() {
@@ -4042,16 +3938,9 @@
                     type: 'doughnut',
                     data: {
                         labels: ['Aprovadas', 'Pendentes RH', 'Pendentes CG', 'Pendentes Director', 'Devolvidas', 'Em Recrutamento', 'Confirmação', 'Concluídas'],
-                        datasets: [{
-                            data: [0, 0, 0, 0, 0, 0, 0, 0],
-                            backgroundColor: ['#4CAF50', '#FF9800', '#FFC107', '#FF5722', '#ffb74d', '#2196F3', '#9c27b0', '#607d8b']
-                        }]
+                        datasets: [{ data: [0, 0, 0, 0, 0, 0, 0, 0], backgroundColor: ['#4CAF50', '#FF9800', '#FFC107', '#FF5722', '#ffb74d', '#2196F3', '#9c27b0', '#607d8b'] }]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        plugins: { legend: { position: 'bottom' } }
-                    }
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
                 });
             }
         }
@@ -4059,15 +3948,16 @@
         function atualizarGraficos() {
             if (!graficos.status) return;
             const requisicoesVisiveis = filtrarRequisicoesVisiveis(requisicoes);
-            const aprov = requisicoesVisiveis.filter(r => r.status === 'aprovada').length;
-            const pendRH = requisicoesVisiveis.filter(r => r.status === 'em_validacao_rh').length;
-            const pendCG = requisicoesVisiveis.filter(r => r.status === 'em_validacao_financas').length;
-            const pendDir = requisicoesVisiveis.filter(r => r.status === 'em_validacao_director').length;
-            const devolvidas = requisicoesVisiveis.filter(r => r.status === 'devolvida_solicitante').length;
-            const emRecrutamento = requisicoesVisiveis.filter(r => r.status === 'em_recrutamento').length;
-            const confirmacao = requisicoesVisiveis.filter(r => r.status === 'aguardando_confirmacao_solicitante').length;
-            const concluidas = requisicoesVisiveis.filter(r => r.status === 'concluida').length;
-            graficos.status.data.datasets[0].data = [aprov, pendRH, pendCG, pendDir, devolvidas, emRecrutamento, confirmacao, concluidas];
+            graficos.status.data.datasets[0].data = [
+                requisicoesVisiveis.filter(r => r.status === 'aprovada').length,
+                requisicoesVisiveis.filter(r => r.status === 'em_validacao_rh').length,
+                requisicoesVisiveis.filter(r => r.status === 'em_validacao_financas').length,
+                requisicoesVisiveis.filter(r => r.status === 'em_validacao_director').length,
+                requisicoesVisiveis.filter(r => r.status === 'devolvida_solicitante').length,
+                requisicoesVisiveis.filter(r => r.status === 'em_recrutamento').length,
+                requisicoesVisiveis.filter(r => r.status === 'aguardando_confirmacao_solicitante').length,
+                requisicoesVisiveis.filter(r => r.status === 'concluida').length
+            ];
             graficos.status.update();
         }
 
@@ -4101,7 +3991,7 @@
                 headStyles: { fillColor: [76, 175, 80] }
             });
             doc.save(`relatorio_requisicoes_${dataRelatorio.replace(/\//g, '-')}.pdf`);
-            mostrarNotificacao('Relatório PDF gerado com sucesso!', 'success');
+            mostrarNotificacao('Relatório PDF gerado!', 'success');
         }
 
         function exportarRelatorioExcel() {
@@ -4110,22 +4000,18 @@
             const wsData = [
                 ['Kero SIR - Relatório de Requisições'],
                 [`Gerado em: ${dataRelatorio}`],
-                [`Total de requisições: ${dados.length}`],
+                [`Total: ${dados.length}`],
                 [],
                 ['Código', 'Função', 'Direção', 'Categoria', 'Status', 'Tipo', 'Data Criação', 'Data Início', 'Solicitante']
             ];
             dados.forEach(r => {
-                wsData.push([
-                    r.codigo, r.funcao, r.direcao, r.area, getStatusText(r.status),
-                    r.tipo === 'novo_cargo' ? 'Novo Cargo' : r.tipo === 'substituicao' ? 'Substituição' : 'Reforço',
-                    formatarData(r.dataCriacao), formatarData(r.dataInicio), r.criadoPor
-                ]);
+                wsData.push([r.codigo, r.funcao, r.direcao, r.area, getStatusText(r.status), r.tipo, formatarData(r.dataCriacao), formatarData(r.dataInicio), r.criadoPor]);
             });
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
             XLSX.utils.book_append_sheet(wb, ws, 'Requisições');
             XLSX.writeFile(wb, `relatorio_requisicoes_${dataRelatorio.replace(/\//g, '-')}.xlsx`);
-            mostrarNotificacao('Relatório Excel gerado com sucesso!', 'success');
+            mostrarNotificacao('Relatório Excel gerado!', 'success');
         }
 
         function exportarRelatorioCSV() {
@@ -4133,16 +4019,32 @@
             const dataRelatorio = new Date().toLocaleDateString('pt-PT');
             let csv = 'Código;Função;Direção;Categoria;Status;Tipo;Data Criação;Data Início;Solicitante\n';
             dados.forEach(r => {
-                csv += `"${r.codigo}";"${r.funcao}";"${r.direcao}";"${r.area}";"${getStatusText(r.status)}";`;
-                csv += `"${r.tipo === 'novo_cargo' ? 'Novo Cargo' : r.tipo === 'substituicao' ? 'Substituição' : 'Reforço'}";`;
-                csv += `"${formatarData(r.dataCriacao)}";"${formatarData(r.dataInicio)}";"${r.criadoPor}"\n`;
+                csv += `"${r.codigo}";"${r.funcao}";"${r.direcao}";"${r.area}";"${getStatusText(r.status)}";"${r.tipo}";"${formatarData(r.dataCriacao)}";"${formatarData(r.dataInicio)}";"${r.criadoPor}"\n`;
             });
             const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `relatorio_requisicoes_${dataRelatorio.replace(/\//g, '-')}.csv`;
             link.click();
-            mostrarNotificacao('Relatório CSV gerado com sucesso!', 'success');
+            mostrarNotificacao('Relatório CSV gerado!', 'success');
+        }
+
+        function exportarRequisicaoIndividual() {
+            if (!requisicaoVisualizarAtual) { mostrarNotificacao('Nenhuma requisição selecionada', 'warning'); return; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const req = requisicaoVisualizarAtual;
+            doc.setFontSize(18);
+            doc.setTextColor(46, 125, 50);
+            doc.text(`Requisição ${req.codigo}`, 14, 20);
+            doc.setFontSize(11);
+            doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-PT')}`, 14, 30);
+            const body = [['Código', req.codigo], ['Função', req.funcao], ['Direção', req.direcao], ['Categoria', req.area], ['Quantidade', req.quantidade.toString()], ['Status', getStatusText(req.status)], ['Data Início', formatarData(req.dataInicio)], ['Solicitante', req.criadoPor || 'N/A'], ['Data Criação', formatarDataHora(req.dataCriacao)], ['Observações', req.observacoes || 'N/A']];
+            if (req.dataInicioRecrutamento) body.push(['Início Recrutamento', formatarDataHora(req.dataInicioRecrutamento)]);
+            if (req.dataFimRecrutamento) body.push(['Fim Recrutamento', formatarDataHora(req.dataFimRecrutamento)]);
+            doc.autoTable({ startY: 40, body: body, styles: { fontSize: 10, cellPadding: 4 }, columnStyles: { 0: { fontStyle: 'bold', textColor: [46, 125, 50] } } });
+            doc.save(`requisicao_${req.codigo}.pdf`);
+            mostrarNotificacao('PDF da requisição exportado!', 'success');
         }
 
         function carregarDirecoes() {
@@ -4216,11 +4118,8 @@
                         ficheirosSalvos.push(ficheiroSalvo);
                     } catch (error) {
                         console.error('Erro ao enviar ficheiro:', error);
-                        mostrarNotificacao(`Erro ao enviar ${arquivo.name}: ${error.message}`, 'error');
+                        mostrarNotificacao(`Erro ao enviar ${arquivo.name}`, 'error');
                     }
-                }
-                if (ficheirosSalvos.length > 0) {
-                    mostrarNotificacao(`${ficheirosSalvos.length} ficheiro(s) enviado(s)!`, 'success');
                 }
             }
 
@@ -4251,15 +4150,9 @@
 
             if (salvo) {
                 requisicoes.unshift(novaRequisicao);
-                await enviarEmail(emailsAprovadores['RH'],
-                    `Nova Requisição para Aprovação - ${novoCodigo}`,
-                    templateNovaRequisicao(novaRequisicao));
-                await enviarNotificacaoTeams(
-                    `📋 Nova Requisição: ${novoCodigo}`,
-                    `**${usuarioAtual.nome}** criou uma nova requisição para **${funcao}** (${dir}).`,
-                    '2196F3'
-                );
-                adicionarNotificacao('Nova Requisição', `Requisição ${novoCodigo} criada com sucesso!`, 'info', novaRequisicao.id);
+                await enviarEmail(emailsAprovadores['RH'], `Nova Requisição - ${novoCodigo}`, templateNovaRequisicao(novaRequisicao));
+                await enviarNotificacaoTeams(`📋 Nova Requisição: ${novoCodigo}`, `**${usuarioAtual.nome}** criou requisição para **${funcao}**`, '2196F3');
+                adicionarNotificacao('Nova Requisição', `Requisição ${novoCodigo} criada!`, 'info', novaRequisicao.id);
                 fecharModal('modalNovaRequisicao');
                 document.getElementById('formNovaRequisicao').reset();
                 arquivosUpload = [];
@@ -4272,7 +4165,7 @@
                 carregarDashboardStatus();
                 mostrarNotificacao(`Requisição ${novoCodigo} criada com sucesso!`, 'success');
             } else {
-                mostrarNotificacao(`Erro ao salvar no SharePoint. Verifique se a lista "${SHAREPOINT_CONFIG.listName}" existe.`, 'error');
+                mostrarNotificacao(`Erro ao salvar no SharePoint.`, 'error');
             }
             hideLoading();
         }
@@ -4293,6 +4186,7 @@
             }
         }
 
+        // Event Listeners
         document.addEventListener('DOMContentLoaded', async function () {
             const savedConfig = localStorage.getItem('configuracoes');
             if (savedConfig) {
